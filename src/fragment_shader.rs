@@ -2,11 +2,11 @@ use bevy::render::render_resource::Shader;
 
 use crate::prelude::ParameterizedShader;
 
-pub(crate) fn create_fragment_shader<PARAMETERS: ParameterizedShader>() -> Shader {
-    let params_locations = crate::vertex_shader::format_params_locations::<PARAMETERS>();
+pub(crate) fn create_fragment_shader<SHADER: ParameterizedShader>() -> Shader {
+    let params_locations = crate::helpers::format_params_locations::<SHADER::Params>();
 
-    let fragment_body = PARAMETERS::fragment_body();
-    let helpers = PARAMETERS::fragment_helpers();
+    let fragment_body = SHADER::fragment_body();
+    let helpers = SHADER::fragment_helpers();
 
     let source = format!(
         r#"
@@ -29,7 +29,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {{
     );
     //bevy::log::info!("{source}");
 
-    let tn = PARAMETERS::TYPE_UUID;
+    let tn = SHADER ::TYPE_UUID;
 
     let generated_shader = Shader::from_wgsl(source, format!("fragment_{tn}"));
 

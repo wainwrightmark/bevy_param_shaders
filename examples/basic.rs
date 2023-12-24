@@ -16,28 +16,45 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader
-{
-    pub red: f32
-}
+pub struct MyShader;
 
 impl ParameterizedShader for MyShader {
     fn fragment_body<'a>() -> &'a str {
-        "return vec4<f32>(in.red,0.2,0.2,1.0);"
+        "return in.color;"
     }
 
     fn fragment_helpers<'a>() -> &'a str {
         ""
     }
+
+    type Params = MyParams;
 }
 
-fn setup(
-    mut commands: Commands,
-) {
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct MyParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for MyParams {}
+
+fn setup(mut commands: Commands) {
     commands.spawn(ShapeBundle {
-        shape: ShaderShape {
+        shape: ShaderShape::<MyShader> {
             frame: Frame::Quad(100.0),
-            parameters: MyShader{red: 0.8},
+            parameters: MyParams {
+                color: Color::ORANGE_RED.into(),
+            },
+        },
+        ..default()
+    });
+
+    commands.spawn(ShapeBundle {
+        shape: ShaderShape::<MyShader> {
+            frame: Frame::Quad(50.0),
+            parameters: MyParams {
+                color: Color::BLUE.into(),
+            },
         },
         ..default()
     });

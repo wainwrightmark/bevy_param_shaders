@@ -50,13 +50,13 @@ fn setup(
     assets: Res<AssetHandles>,
     palettes: Res<Assets<bevy_lospec::Palette>>,
 ) {
-    const PARAMETERS: &'static [ShaderParameter] = &[
+    const SHADER: &'static [ShaderParameter] = &[
         ShaderParameter::f32(0),
         ShaderParameter::f32(1),
         ShaderParameter::f32(2),
         ShaderParameter::u32(0),
     ];
-    let fill_param_usage = ShaderParamUsage(PARAMETERS);
+    let fill_param_usage = ShaderParamUsage(SHADER);
 
     let circle = shaders.add_sdf_expr("smud::sd_circle(p, 50.)", ShaderParamUsage::NO_PARAMS);
 

@@ -4,9 +4,9 @@ use crate::{ShaderShape, parameterized_shader::*};
 
 #[derive(Bundle, Default, Clone, Debug)]
 /// Bundle with all the components needed for drawing an sdf shape in 2d world space
-pub struct ShapeBundle<PARAMETERS: ParameterizedShader> {
+pub struct ShapeBundle<SHADER: ParameterizedShader> {
     /// The shape, which describes the color, frame, and additional parameters
-    pub shape: ShaderShape<PARAMETERS>,
+    pub shape: ShaderShape<SHADER>,
     /// A transform, set this to set the position, orientation and scale of the shape
     ///
     /// note: scaling the shape with the transform will also scale the fill, including any outlines etc.

@@ -23,11 +23,11 @@ use bevy::{
         render_resource::{
             BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutDescriptor,
             BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, BufferUsages,
-            BufferVec, CachedRenderPipelineId, ColorTargetState, ColorWrites, Face, FragmentState,
-            FrontFace, MultisampleState, PipelineCache, PolygonMode, PrimitiveState,
-            PrimitiveTopology, RenderPipelineDescriptor, ShaderImport, ShaderStages, ShaderType,
-            SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat, VertexAttribute,
-            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            BufferVec, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
+            MultisampleState, PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
+            RenderPipelineDescriptor, ShaderStages, ShaderType, SpecializedRenderPipeline,
+            SpecializedRenderPipelines, TextureFormat, VertexAttribute, VertexBufferLayout,
+            VertexFormat, VertexState, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::BevyDefault,
@@ -35,9 +35,9 @@ use bevy::{
             ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
             VisibleEntities,
         },
-        Extract, MainWorld, Render, RenderApp, RenderSet,
+        Extract, Render, RenderApp, RenderSet,
     },
-    utils::{EntityHashMap, FloatOrd, HashMap},
+    utils::{EntityHashMap, FloatOrd},
 };
 use bytemuck::{Pod, Zeroable};
 use fixedbitset::FixedBitSet;
@@ -52,12 +52,12 @@ use parameterized_shader::*;
 mod bundle;
 mod components;
 mod fragment_shader;
+mod helpers;
 pub mod parameterized_shader;
 mod sdf_assets;
 mod shader_loading;
 mod util;
 mod vertex_shader;
-// mod ui;
 
 /// Re-export of the essentials needed for rendering shapes
 ///
@@ -70,64 +70,62 @@ pub mod prelude {
 }
 
 /// Main plugin for enabling rendering of Sdf shapes
-pub struct SmudPlugin<PARAMETERS: ParameterizedShader>(PhantomData<PARAMETERS>);
+pub struct SmudPlugin<SHADER: ParameterizedShader>(PhantomData<SHADER>);
 
-impl<PARAMETERS: ParameterizedShader> Default for SmudPlugin<PARAMETERS> {
+impl<SHADER: ParameterizedShader> Default for SmudPlugin<SHADER> {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<PARAMETERS: ParameterizedShader> Plugin for SmudPlugin<PARAMETERS> {
+impl<SHADER: ParameterizedShader> Plugin for SmudPlugin<SHADER> {
     fn build(&self, app: &mut App) {
         // All the messy boiler-plate for loading a bunch of shaders
-        app.add_plugins(ShaderLoadingPlugin::<PARAMETERS>::default());
+        app.add_plugins(ShaderLoadingPlugin::<SHADER>::default());
         // app.add_plugins(UiShapePlugin);
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
-                .add_render_command::<Transparent2d, DrawSmudShape<PARAMETERS>>()
-                .init_resource::<ExtractedShapes<PARAMETERS>>()
-                .init_resource::<ShapeMeta<PARAMETERS>>()
-                .init_resource::<SpecializedRenderPipelines<SmudPipeline<PARAMETERS>>>()
+                .add_render_command::<Transparent2d, DrawSmudShape<SHADER>>()
+                .init_resource::<ExtractedShapes<SHADER>>()
+                .init_resource::<ShapeMeta<SHADER>>()
+                .init_resource::<SpecializedRenderPipelines<SmudPipeline<SHADER>>>()
                 .add_systems(
                     ExtractSchedule,
                     (
-                        extract_shapes::<PARAMETERS>,
-                        //extract_sdf_shaders::<PARAMETERS>,
+                        extract_shapes::<SHADER>,
+                        //extract_sdf_shaders::<SHADER>,
                     ),
                 )
                 .add_systems(
                     Render,
                     (
-                        queue_shapes::<PARAMETERS>.in_set(RenderSet::Queue),
-                        prepare_shapes::<PARAMETERS>.in_set(RenderSet::PrepareBindGroups),
+                        queue_shapes::<SHADER>.in_set(RenderSet::Queue),
+                        prepare_shapes::<SHADER>.in_set(RenderSet::PrepareBindGroups),
                     ),
                 );
         };
-        app.register_type::<PARAMETERS>();
+        app.register_type::<SHADER>();
     }
 
     fn finish(&self, app: &mut App) {
         app.get_sub_app_mut(RenderApp)
             .unwrap()
-            .init_resource::<SmudPipeline<PARAMETERS>>();
+            .init_resource::<SmudPipeline<SHADER>>();
     }
 }
 
-type DrawSmudShape<PARAMETERS: ParameterizedShader> = (
+type DrawSmudShape<SHADER: ParameterizedShader> = (
     SetItemPipeline,
-    SetShapeViewBindGroup<0, PARAMETERS>,
-    DrawShapeBatch<PARAMETERS>,
+    SetShapeViewBindGroup<0, SHADER>,
+    DrawShapeBatch<SHADER>,
 );
 
-struct SetShapeViewBindGroup<const I: usize, PARAMETERS: ParameterizedShader>(
-    PhantomData<PARAMETERS>,
-);
-impl<P: PhaseItem, const I: usize, PARAMETERS: ParameterizedShader> RenderCommand<P>
-    for SetShapeViewBindGroup<I, PARAMETERS>
+struct SetShapeViewBindGroup<const I: usize, SHADER: ParameterizedShader>(PhantomData<SHADER>);
+impl<P: PhaseItem, const I: usize, SHADER: ParameterizedShader> RenderCommand<P>
+    for SetShapeViewBindGroup<I, SHADER>
 {
-    type Param = SRes<ShapeMeta<PARAMETERS>>;
+    type Param = SRes<ShapeMeta<SHADER>>;
     type ViewWorldQuery = Read<ViewUniformOffset>;
     type ItemWorldQuery = ();
 
@@ -147,11 +145,9 @@ impl<P: PhaseItem, const I: usize, PARAMETERS: ParameterizedShader> RenderComman
     }
 }
 
-struct DrawShapeBatch<PARAMETERS: ParameterizedShader>(PhantomData<PARAMETERS>);
-impl<P: PhaseItem, PARAMETERS: ParameterizedShader> RenderCommand<P>
-    for DrawShapeBatch<PARAMETERS>
-{
-    type Param = SRes<ShapeMeta<PARAMETERS>>;
+struct DrawShapeBatch<SHADER: ParameterizedShader>(PhantomData<SHADER>);
+impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBatch<SHADER> {
+    type Param = SRes<ShapeMeta<SHADER>>;
     type ViewWorldQuery = ();
     type ItemWorldQuery = Read<ShapeBatch>;
 
@@ -163,27 +159,23 @@ impl<P: PhaseItem, PARAMETERS: ParameterizedShader> RenderCommand<P>
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let shape_meta = shape_meta.into_inner();
-        if let Some(buffer) = shape_meta.vertices.buffer(){
+        if let Some(buffer) = shape_meta.vertices.buffer() {
             pass.set_vertex_buffer(0, buffer.slice(..));
             pass.draw(0..4, batch.range.clone());
             RenderCommandResult::Success
-        }
-        else{
+        } else {
             RenderCommandResult::Failure
         }
-
-
-
     }
 }
 
 #[derive(Resource)]
-struct SmudPipeline<PARAMETERS: ParameterizedShader> {
+struct SmudPipeline<SHADER: ParameterizedShader> {
     view_layout: BindGroupLayout,
-    phantom: PhantomData<PARAMETERS>,
+    phantom: PhantomData<SHADER>,
 }
 
-impl<PARAMETERS: ParameterizedShader> FromWorld for SmudPipeline<PARAMETERS> {
+impl<SHADER: ParameterizedShader> FromWorld for SmudPipeline<SHADER> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
@@ -226,7 +218,7 @@ struct SmudPipelineKey {
     hdr: bool,
 }
 
-impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<PARAMETERS> {
+impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHADER> {
     type Key = SmudPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
@@ -241,7 +233,7 @@ impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline
         const ROTATION_WORDS: u64 = 2;
         const SCALE_WORDS: u64 = 1;
 
-        let proxy = PARAMETERS::default();
+        let proxy = <SHADER::Params as Default>::default();
         let param_count = proxy.field_len() as u32;
 
         // (GOTCHA! attributes are sorted alphabetically, and offsets need to reflect this)
@@ -269,7 +261,7 @@ impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline
         let mut shader_location: u32 = 1;
 
         for field in proxy.iter_fields() {
-            let Some(format) = vertex_shader::get_vertex_format(field.type_id()) else {
+            let Some(format) = helpers::get_vertex_format(field.type_id()) else {
                 panic!("Cannot convert {} to wgsl type", field.type_name());
             };
 
@@ -311,7 +303,7 @@ impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline
 
         RenderPipelineDescriptor {
             vertex: VertexState {
-                shader: shader_loading::get_vertex_handle::<PARAMETERS>().clone_weak(),
+                shader: shader_loading::get_vertex_handle::<SHADER>().clone_weak(),
                 entry_point: "vertex".into(),
                 shader_defs: Vec::new(),
                 buffers: vec![VertexBufferLayout {
@@ -321,7 +313,7 @@ impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline
                 }],
             },
             fragment: Some(FragmentState {
-                shader: shader_loading::get_fragment_handle::<PARAMETERS>().clone_weak(),
+                shader: shader_loading::get_fragment_handle::<SHADER>().clone_weak(),
                 entry_point: "fragment".into(),
                 shader_defs: Vec::new(),
                 targets: vec![Some(ColorTargetState {
@@ -360,18 +352,18 @@ impl<PARAMETERS: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline
 }
 
 #[derive(Component, Clone, Debug)]
-struct ExtractedShape<PARAMETERS: ParameterizedShader> {
-    params: PARAMETERS,
+struct ExtractedShape<PARAMS: ShaderParams> {
+    params: PARAMS,
     frame: f32,
     transform: GlobalTransform,
 }
 
 #[derive(Resource, Debug)]
-struct ExtractedShapes<PARAMETERS: ParameterizedShader> {
-    shapes: EntityHashMap<Entity, ExtractedShape<PARAMETERS>>,
+struct ExtractedShapes<SHADER: ParameterizedShader> {
+    shapes: EntityHashMap<Entity, ExtractedShape<SHADER::Params>>,
 }
 
-impl<PARAMETERS: ParameterizedShader> Default for ExtractedShapes<PARAMETERS> {
+impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
     fn default() -> Self {
         Self {
             shapes: Default::default(),
@@ -379,13 +371,13 @@ impl<PARAMETERS: ParameterizedShader> Default for ExtractedShapes<PARAMETERS> {
     }
 }
 
-fn extract_shapes<PARAMETERS: ParameterizedShader>(
-    mut extracted_shapes: ResMut<ExtractedShapes<PARAMETERS>>,
+fn extract_shapes<SHADER: ParameterizedShader>(
+    mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
     shape_query: Extract<
         Query<(
             Entity,
             &ViewVisibility,
-            &ShaderShape<PARAMETERS>,
+            &ShaderShape<SHADER>,
             &GlobalTransform,
         )>,
     >,
@@ -458,14 +450,14 @@ impl PipelineKey {
     }
 }
 
-fn queue_shapes<PARAMETERS: ParameterizedShader>(
+fn queue_shapes<SHADER: ParameterizedShader>(
     mut view_entities: Local<FixedBitSet>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    smud_pipeline: Res<SmudPipeline<PARAMETERS>>,
-    mut pipelines: ResMut<SpecializedRenderPipelines<SmudPipeline<PARAMETERS>>>,
+    smud_pipeline: Res<SmudPipeline<SHADER>>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<SmudPipeline<SHADER>>>,
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
-    extracted_shapes: ResMut<ExtractedShapes<PARAMETERS>>,
+    extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
     mut views: Query<(
         &mut RenderPhase<Transparent2d>,
         &VisibleEntities,
@@ -475,7 +467,7 @@ fn queue_shapes<PARAMETERS: ParameterizedShader>(
 ) {
     let draw_smud_shape_function = draw_functions
         .read()
-        .get_id::<DrawSmudShape<PARAMETERS>>()
+        .get_id::<DrawSmudShape<SHADER>>()
         .unwrap();
 
     // Iterate over each view (a camera is a view)
@@ -517,15 +509,15 @@ fn queue_shapes<PARAMETERS: ParameterizedShader>(
     }
 }
 
-fn prepare_shapes<PARAMETERS: ParameterizedShader>(
+fn prepare_shapes<SHADER: ParameterizedShader>(
     mut commands: Commands,
     mut previous_len: Local<usize>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    mut shape_meta: ResMut<ShapeMeta<PARAMETERS>>,
+    mut shape_meta: ResMut<ShapeMeta<SHADER>>,
     view_uniforms: Res<ViewUniforms>,
-    smud_pipeline: Res<SmudPipeline<PARAMETERS>>,
-    extracted_shapes: Res<ExtractedShapes<PARAMETERS>>,
+    smud_pipeline: Res<SmudPipeline<SHADER>>,
+    extracted_shapes: Res<ExtractedShapes<SHADER>>,
     mut phases: Query<&mut RenderPhase<Transparent2d>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
@@ -604,7 +596,9 @@ fn prepare_shapes<PARAMETERS: ParameterizedShader>(
             }
         }
 
-        shape_meta.vertices.write_buffer(&render_device, &render_queue);
+        shape_meta
+            .vertices
+            .write_buffer(&render_device, &render_queue);
 
         *previous_len = batches.len();
         commands.insert_or_spawn_batch(batches);
@@ -612,26 +606,24 @@ fn prepare_shapes<PARAMETERS: ParameterizedShader>(
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-struct ShapeVertex<PARAMETERS: ParameterizedShader> {
+#[derive(Debug, Copy, Clone, Zeroable)]
+struct ShapeVertex<PARAMS: ShaderParams> {
     pub frame: f32,
-    pub params: PARAMETERS,
+    pub params: PARAMS,
     pub position: [f32; 3],
     pub rotation: [f32; 2],
     pub scale: f32,
 }
 
-unsafe impl<PARAMETERS: ParameterizedShader> Zeroable for ShapeVertex<PARAMETERS> {}
-
-unsafe impl<PARAMETERS: ParameterizedShader> Pod for ShapeVertex<PARAMETERS> {}
+unsafe impl<PARAMS: ShaderParams> Pod for ShapeVertex<PARAMS> {}
 
 #[derive(Resource)]
-pub(crate) struct ShapeMeta<PARAMETERS: ParameterizedShader> {
-    vertices: BufferVec<ShapeVertex<PARAMETERS>>,
+pub(crate) struct ShapeMeta<SHADER: ParameterizedShader> {
+    vertices: BufferVec<ShapeVertex<SHADER::Params>>,
     view_bind_group: Option<BindGroup>,
 }
 
-impl<PARAMETERS: ParameterizedShader> Default for ShapeMeta<PARAMETERS> {
+impl<SHADER: ParameterizedShader> Default for ShapeMeta<SHADER> {
     fn default() -> Self {
         Self {
             vertices: BufferVec::new(BufferUsages::VERTEX),

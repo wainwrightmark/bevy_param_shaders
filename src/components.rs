@@ -5,13 +5,13 @@ use crate::prelude::ParameterizedShader;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 /// Describes an SDF shape. Must be used with `SmudShaders`
-pub struct ShaderShape<PARAMETERS: ParameterizedShader> {
+pub struct ShaderShape<SHADER: ParameterizedShader> {
     /// The outer bounds for the shape, should be bigger than the sdf shape
     pub frame: Frame,
-    pub parameters: PARAMETERS,
+    pub parameters: SHADER::Params,
 }
 
-impl<PARAMETERS: ParameterizedShader> Default for ShaderShape<PARAMETERS> {
+impl<SHADER: ParameterizedShader> Default for ShaderShape<SHADER> {
     fn default() -> Self {
         Self {
             frame: Default::default(),

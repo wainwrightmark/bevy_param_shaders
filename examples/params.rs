@@ -20,7 +20,7 @@ pub struct MySDFShader{
 }
 
 impl MySDFShader{
-    const PARAMETERS: &'static [ShaderParameter] =
+    const SHADER: &'static [ShaderParameter] =
         &[ShaderParameter(0), ShaderParameter(1)];
 
 }
@@ -39,7 +39,7 @@ impl SmudShader for MySDFShader{
     }
 
     fn param_usage(&self) -> ShaderParamUsage {
-        ShaderParamUsage(Self::PARAMETERS)
+        ShaderParamUsage(Self::SHADER)
     }
 }
 
@@ -83,7 +83,7 @@ fn setup(
 
     let box_sdf = shaders.add_sdf_expr::<&str, [f32;2]>(
         "smud::sd_box(p, vec2<f32>(param_sdf_0, param_sdf_1))",
-        ShaderParamUsage(MySDFShader::PARAMETERS),
+        ShaderParamUsage(MySDFShader::SHADER),
     );
     let padding = 5.; // need some padding for the outline/falloff
     let spacing = 70.;

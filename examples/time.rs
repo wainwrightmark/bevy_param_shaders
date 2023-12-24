@@ -1,32 +1,63 @@
-use bevy::prelude::*;
-use bevy_pancam::*;
-use bevy_smud::{*, smud_parameters::{SmudSDF, SmudFill}};
+use bevy::{prelude::*, reflect::TypeUuid};
+// The prelude contains the basic things needed to create shapes
+use bevy_param_shaders::prelude::*;
+use bytemuck::{Pod, Zeroable};
 
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, SmudPlugin::<SmudSDF,SmudFill>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default()))
         .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let bevy_shape_shader = asset_server.load("star_bevy.wgsl");
+#[repr(C)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+pub struct MyShader;
 
+impl ParameterizedShader for MyShader {
+    fn fragment_body<'a>() -> &'a str {
+        "return vec4<f32>(in.color.rgb, sin(globals.time) * 0.5 + 0.5);"
+    }
+
+    fn fragment_helpers<'a>() -> &'a str {
+        ""
+    }
+
+    type Params = MyParams;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct MyParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for MyParams {}
+
+fn setup(mut commands: Commands) {
     commands.spawn(ShapeBundle {
-        shape: SmudShape {
-            color: Color::rgb(0.36, 0.41, 0.45),
-
-            frame: Frame::Quad(400.),
-            ..default()
+        shape: ShaderShape::<MyShader> {
+            frame: Frame::Quad(100.0),
+            parameters: MyParams {
+                color: Color::ORANGE_RED.into(),
+            },
         },
-        sdf: SmudSDF{handle: bevy_shape_shader},
-        fill: SmudFill::default(),
         ..default()
     });
 
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn(ShapeBundle {
+        shape: ShaderShape::<MyShader> {
+            frame: Frame::Quad(50.0),
+            parameters: MyParams {
+                color: Color::BLUE.into(),
+            },
+        },
+        ..default()
+    });
+
+    commands.spawn(Camera2dBundle::default());
 }
