@@ -1,95 +1,107 @@
+use std::{borrow::Cow, fmt::Display};
+
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_asset_loader::prelude::*;
+use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
-use bevy_smud::prelude::*;
+use bevy_param_shaders::{prelude::*};
+use bytemuck::{Pod, Zeroable};
 use rand::prelude::*;
 
 fn main() {
     App::new()
-        .add_state::<GameState>()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::Running),
-        )
-        .add_collection_to_loading_state::<_, AssetHandles>(GameState::Loading)
         .add_plugins((
             DefaultPlugins,
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
-            SmudPlugin::<SmudSDF,SmudFill>::default(),
+            SmudPlugin::<MyShader>::default(),
             PanCamPlugin,
-            bevy_lospec::PalettePlugin,
         ))
-        .add_systems(OnEnter(GameState::Running), setup)
+        .add_systems(Startup, setup)
         // .add_system_set(SystemSet::on_update(GameState::Running).with_system(update))
         .run();
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash, States, Default)]
-enum GameState {
-    #[default]
-    Loading,
-    Running,
+#[repr(C)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+pub struct MyShader;
+
+impl ParameterizedShader for MyShader {
+
+    fn fragment_body() -> impl Display {
+        r#"
+        let d = smud::bevy::sdf(in.pos);
+        let a = smud::sd_fill_alpha_fwidth(d);
+        return vec4<f32>(in.color.rgb, a * in.color.a);
+        "#
+    }
+
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [FragmentImport {
+            path: "smud.wgsl",
+            import_path: "smud",
+        },FragmentImport {
+            path: "bevy.wgsl",
+            import_path: "smud::bevy",
+        }
+
+
+        ]
+        .into_iter()
+    }
+
+    type Params = MyParams;
 }
 
-#[derive(Resource, AssetCollection)]
-struct AssetHandles {
-    #[asset(path = "vinik24.json")]
-    palette: Handle<bevy_lospec::Palette>,
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct MyParams {
+    pub color: LinearRGBA,
 }
+
+impl ShaderParams for MyParams {}
 
 #[derive(Component)]
 struct Index(usize);
 
-fn setup(
-    mut commands: Commands,
-    assets: Res<AssetHandles>,
-    palettes: Res<Assets<bevy_lospec::Palette>>,
-    asset_server: Res<AssetServer>,
-) {
-    let palette = palettes.get(&assets.palette).unwrap();
+fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();
     let spacing = 800.0;
-    let w = 316;
-    // let w = 420;
-    // let w = 10;
+    let w = 632;
     let h = w;
     info!("Adding {} shapes", w * h);
 
-    let clear_color = palette.lightest();
+    let clear_color = Color::NONE;
     commands.insert_resource(ClearColor(clear_color));
-
-    let bevy_shape_shader = asset_server.load("bevy.wgsl");
 
     for i in 0..w {
         for j in 0..h {
-            let color = palette
-                .iter()
-                .filter(|c| *c != &clear_color)
-                .choose(&mut rng)
-                .copied()
-                .unwrap_or(Color::PINK);
+            let color = Color::Rgba {
+                red: rng.gen_range(0.0..=1.0),
+                green: rng.gen_range(0.0..=1.0),
+                blue: rng.gen_range(0.0..=1.0),
+                alpha: rng.gen_range(0.0..=1.0),
+            };
 
             commands.spawn((
-                ShapeBundle {
+                ShaderBundle {
+                    shape: ShaderShape::<MyShader> {
+                        frame: Frame::Quad(295.0),
+                        parameters: MyParams {
+                            color: color.into(),
+                        },
+                    },
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,
                         j as f32 * spacing - h as f32 * spacing / 2.,
                         0.,
                     )),
-                    shape: SmudShape {
-                        color,
-
-                        frame: Frame::Quad(295.),
-                        ..default()
-                    },
-                    sdf: SmudSDF{handle: bevy_shape_shader.clone()},
-                    fill: SmudFill::default(),
                     ..default()
                 },
                 Index(i + j * w),

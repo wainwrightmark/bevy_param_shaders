@@ -41,10 +41,11 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 use fixedbitset::FixedBitSet;
+use pipeline_key::PipelineKey;
 use shader_loading::*;
 // use ui::UiShapePlugin;
 
-pub use bundle::ShapeBundle;
+pub use bundle::ShaderBundle;
 pub use components::*;
 
 use parameterized_shader::*;
@@ -54,6 +55,7 @@ mod components;
 mod fragment_shader;
 mod helpers;
 pub mod parameterized_shader;
+mod pipeline_key;
 mod sdf_assets;
 mod shader_loading;
 mod util;
@@ -63,10 +65,10 @@ mod vertex_shader;
 ///
 /// Intended to be included at the top of your file to minimize the amount of import noise.
 /// ```
-/// use bevy_smud::prelude::*;
+/// use bevy_param_shaders::prelude::*;
 /// ```
 pub mod prelude {
-    pub use crate::{parameterized_shader::*, Frame, ShaderShape, ShapeBundle, SmudPlugin};
+    pub use crate::{parameterized_shader::*, Frame, ShaderBundle, ShaderShape, SmudPlugin};
 }
 
 /// Main plugin for enabling rendering of Sdf shapes
@@ -90,13 +92,7 @@ impl<SHADER: ParameterizedShader> Plugin for SmudPlugin<SHADER> {
                 .init_resource::<ExtractedShapes<SHADER>>()
                 .init_resource::<ShapeMeta<SHADER>>()
                 .init_resource::<SpecializedRenderPipelines<SmudPipeline<SHADER>>>()
-                .add_systems(
-                    ExtractSchedule,
-                    (
-                        extract_shapes::<SHADER>,
-                        //extract_sdf_shaders::<SHADER>,
-                    ),
-                )
+                .add_systems(ExtractSchedule, (extract_shapes::<SHADER>,))
                 .add_systems(
                     Render,
                     (
@@ -115,7 +111,7 @@ impl<SHADER: ParameterizedShader> Plugin for SmudPlugin<SHADER> {
     }
 }
 
-type DrawSmudShape<SHADER: ParameterizedShader> = (
+type DrawSmudShape<SHADER> = (
     SetItemPipeline,
     SetShapeViewBindGroup<0, SHADER>,
     DrawShapeBatch<SHADER>,
@@ -161,7 +157,7 @@ impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBa
         let shape_meta = shape_meta.into_inner();
         if let Some(buffer) = shape_meta.vertices.buffer() {
             pass.set_vertex_buffer(0, buffer.slice(..));
-            pass.draw(0..4, batch.range.clone());
+            pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
             RenderCommandResult::Success
         } else {
             RenderCommandResult::Failure
@@ -399,54 +395,6 @@ fn extract_shapes<SHADER: ParameterizedShader>(
                 frame,
             },
         );
-    }
-}
-
-// fork of Mesh2DPipelineKey (in order to remove bevy_sprite dependency)
-// todo: merge with SmudPipelineKey?
-bitflags::bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    #[repr(transparent)]
-    struct PipelineKey: u32 {
-        const MSAA_RESERVED_BITS                = Self::MSAA_MASK_BITS << Self::MSAA_SHIFT_BITS;
-        const PRIMITIVE_TOPOLOGY_RESERVED_BITS  = Self::PRIMITIVE_TOPOLOGY_MASK_BITS << Self::PRIMITIVE_TOPOLOGY_SHIFT_BITS;
-    }
-}
-
-impl PipelineKey {
-    const MSAA_MASK_BITS: u32 = 0b111;
-    const MSAA_SHIFT_BITS: u32 = 32 - Self::MSAA_MASK_BITS.count_ones();
-    const PRIMITIVE_TOPOLOGY_MASK_BITS: u32 = 0b111;
-    const PRIMITIVE_TOPOLOGY_SHIFT_BITS: u32 = Self::MSAA_SHIFT_BITS - 3;
-
-    pub fn from_msaa_samples(msaa_samples: u32) -> Self {
-        let msaa_bits =
-            (msaa_samples.trailing_zeros() & Self::MSAA_MASK_BITS) << Self::MSAA_SHIFT_BITS;
-        Self::from_bits(msaa_bits).unwrap()
-    }
-
-    pub fn msaa_samples(&self) -> u32 {
-        1 << ((self.bits() >> Self::MSAA_SHIFT_BITS) & Self::MSAA_MASK_BITS)
-    }
-
-    pub fn from_primitive_topology(primitive_topology: PrimitiveTopology) -> Self {
-        let primitive_topology_bits = ((primitive_topology as u32)
-            & Self::PRIMITIVE_TOPOLOGY_MASK_BITS)
-            << Self::PRIMITIVE_TOPOLOGY_SHIFT_BITS;
-        Self::from_bits(primitive_topology_bits).unwrap()
-    }
-
-    pub fn primitive_topology(&self) -> PrimitiveTopology {
-        let primitive_topology_bits = (self.bits() >> Self::PRIMITIVE_TOPOLOGY_SHIFT_BITS)
-            & Self::PRIMITIVE_TOPOLOGY_MASK_BITS;
-        match primitive_topology_bits {
-            x if x == PrimitiveTopology::PointList as u32 => PrimitiveTopology::PointList,
-            x if x == PrimitiveTopology::LineList as u32 => PrimitiveTopology::LineList,
-            x if x == PrimitiveTopology::LineStrip as u32 => PrimitiveTopology::LineStrip,
-            x if x == PrimitiveTopology::TriangleList as u32 => PrimitiveTopology::TriangleList,
-            x if x == PrimitiveTopology::TriangleStrip as u32 => PrimitiveTopology::TriangleStrip,
-            _ => PrimitiveTopology::default(),
-        }
     }
 }
 

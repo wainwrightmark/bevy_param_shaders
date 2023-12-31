@@ -1,3 +1,5 @@
+use std::{borrow::Cow, fmt::Display};
+
 use bevy::reflect::{GetTypeRegistration, Reflect, Struct, TypeUuid};
 use bytemuck::{Pod, Zeroable};
 
@@ -11,11 +13,19 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration + 's
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field
     /// It should return `vec4<f32>` representing the color of the pixel
-    fn fragment_body<'a>() -> &'a str;
+    fn fragment_body() -> impl Display;
 
-    /// Get the text of any helper functions.
-    fn fragment_helpers<'a>() -> &'a str;
+    /// Get imports
+    fn imports() -> impl Iterator<Item = FragmentImport>;
 }
+
+pub struct FragmentImport{
+    pub path: &'static str,
+    pub import_path: &'static str
+}
+
+
+
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, Pod, Zeroable)]

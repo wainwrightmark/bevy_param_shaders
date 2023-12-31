@@ -1,11 +1,9 @@
-//! This example shows that bevy_smud works with bloom enabled
-//!
-//! Note that you could probably achieve cheaper and higher quality bloom-like
-//! effects by creating a custom fill.
+use std::{borrow::Cow, fmt::Display};
 
-use bevy::{core_pipeline::bloom::BloomSettings, prelude::*};
+use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
-use bevy_smud::{prelude::*, param_usage::ShaderParamUsage};
+use bevy_param_shaders::prelude::*;
+use bytemuck::{Pod, Zeroable};
 
 fn main() {
     App::new()
@@ -13,33 +11,53 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_plugins((DefaultPlugins, SmudPlugin::<SmudSDF,SmudFill>::default()))
+        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default()))
         .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(mut commands: Commands, mut shaders: ResMut<Assets<Shader>>) {
-    // add_sdf_expr expects a wgsl expression
-    // p is the position of a fragment within the sdf shape, with 0, 0 at the center.
-    // Here we are using the built-in sd_circle function, which accepts the
-    // radius as a parameter.
-    let circle = shaders.add_sdf_expr::<&str, ()>("smud::sd_circle(p, 70.)", ShaderParamUsage::NO_PARAMS);
+#[repr(C)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+pub struct MyShader;
 
-    commands.spawn(ShapeBundle {
-        shape: SmudShape {
-            color: Color::TOMATO,
-            // The frame needs to be bigger than the shape we're drawing
-            // Since the circle has radius 70, we make the half-size of the quad 80.
-            frame: Frame::Quad(80.),
+impl ParameterizedShader for MyShader {
+    fn fragment_body() -> impl Display {
+        r#"
+        let d = smud::sd_circle(in.pos, 0.7);
+        let a = smud::sd_fill_alpha_fwidth(d);
+        return vec4<f32>(in.color.rgb, a * in.color.a);
+        "#
+    }
 
-            ..Default::default()
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [FragmentImport {
+            path: "smud.wgsl",
+            import_path: "smud",
+        }]
+        .into_iter()
+    }
+
+    type Params = MyParams;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct MyParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for MyParams {}
+
+fn setup(mut commands: Commands) {
+    commands.spawn(ShaderBundle {
+        shape: ShaderShape::<MyShader> {
+            frame: Frame::Quad(1.0),
+            parameters: MyParams {
+                color: Color::ORANGE_RED.into(),
+            },
         },
-        sdf: SmudSDF{
-            handle: circle.clone()
-        },
-        fill: SmudFill{
-            handle: SIMPLE_FILL_HANDLE
-        },
+        transform: Transform::from_scale(Vec3::ONE * 100.0),
         ..default()
     });
 
@@ -49,9 +67,10 @@ fn setup(mut commands: Commands, mut shaders: ResMut<Assets<Shader>>) {
                 hdr: true,
                 ..default()
             },
+
             ..default()
         },
-        BloomSettings {
+        bevy::core_pipeline::bloom::BloomSettings {
             intensity: 0.7,
             ..default()
         },

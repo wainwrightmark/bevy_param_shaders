@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
@@ -19,15 +21,15 @@ fn main() {
 pub struct MyShader;
 
 impl ParameterizedShader for MyShader {
-    fn fragment_body<'a>() -> &'a str {
+    fn fragment_body() -> impl Display {
         "return in.color;"
     }
 
-    fn fragment_helpers<'a>() -> &'a str {
-        ""
-    }
-
     type Params = MyParams;
+
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [].into_iter()
+    }
 }
 
 #[repr(C)]
@@ -39,7 +41,7 @@ pub struct MyParams {
 impl ShaderParams for MyParams {}
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         shape: ShaderShape::<MyShader> {
             frame: Frame::Quad(100.0),
             parameters: MyParams {
@@ -49,7 +51,7 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         shape: ShaderShape::<MyShader> {
             frame: Frame::Quad(50.0),
             parameters: MyParams {

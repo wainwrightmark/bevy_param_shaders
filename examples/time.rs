@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
@@ -19,12 +21,12 @@ fn main() {
 pub struct MyShader;
 
 impl ParameterizedShader for MyShader {
-    fn fragment_body<'a>() -> &'a str {
-        "return vec4<f32>(in.color.rgb, sin(globals.time) * 0.5 + 0.5);"
+    fn fragment_body() -> Cow<'static, str> {
+        "return vec4<f32>(in.color.rgb, sin(globals.time) * 0.5 + 0.5);".into()
     }
 
-    fn fragment_helpers<'a>() -> &'a str {
-        ""
+    fn imports() -> Vec<Cow<'static, str>> {
+        vec![]
     }
 
     type Params = MyParams;
@@ -39,7 +41,7 @@ pub struct MyParams {
 impl ShaderParams for MyParams {}
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         shape: ShaderShape::<MyShader> {
             frame: Frame::Quad(100.0),
             parameters: MyParams {
@@ -49,7 +51,7 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         shape: ShaderShape::<MyShader> {
             frame: Frame::Quad(50.0),
             parameters: MyParams {

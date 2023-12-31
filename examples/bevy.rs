@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_pancam::*;
-use bevy_smud::prelude::*;
+use bevy_param_shaders::prelude::*;
 
 fn main() {
     App::new()
@@ -8,7 +8,7 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, SmudPlugin::<SmudSDF,SmudFill>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default(), PanCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }

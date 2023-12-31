@@ -29,9 +29,16 @@ impl<SHADER: ParameterizedShader> Default for ShaderLoadingPlugin<SHADER> {
 impl<SHADER: ParameterizedShader> Plugin for ShaderLoadingPlugin<SHADER> {
     fn build(&self, app: &mut App) {
         let vertex_shader = vertex_shader::create_vertex_shader::<SHADER>();
-        let fragment_shader = fragment_shader::create_fragment_shader::<SHADER>();
+
+        let asset_server = app.world.resource_mut::<AssetServer>();
+
+        for import in SHADER::imports(){
+            let shader: Handle<Shader> =  asset_server.load(import.path);
+            Box::leak( Box::new(shader));
+        }
 
         let mut shaders = app.world.resource_mut::<Assets<Shader>>();
+        let fragment_shader = fragment_shader::create_fragment_shader::<SHADER>();
 
         shaders.insert(get_vertex_handle::<SHADER>(), vertex_shader);
         shaders.insert(get_fragment_handle::<SHADER>(), fragment_shader);
