@@ -1,5 +1,3 @@
-use std::{borrow::Cow, fmt::Display};
-
 use bevy::reflect::{GetTypeRegistration, Reflect, Struct, TypeUuid};
 use bytemuck::{Pod, Zeroable};
 
@@ -13,19 +11,16 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration + 's
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field
     /// It should return `vec4<f32>` representing the color of the pixel
-    fn fragment_body() -> impl Display;
+    fn fragment_body() -> impl std::fmt::Display;
 
     /// Get imports
     fn imports() -> impl Iterator<Item = FragmentImport>;
 }
 
-pub struct FragmentImport{
+pub struct FragmentImport {
     pub path: &'static str,
-    pub import_path: &'static str
+    pub import_path: &'static str,
 }
-
-
-
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, Pod, Zeroable)]
@@ -65,10 +60,6 @@ pub struct LinearRGB {
 impl From<bevy::prelude::Color> for LinearRGB {
     fn from(value: bevy::prelude::Color) -> Self {
         let [red, green, blue, _alpha] = value.as_linear_rgba_f32();
-        Self {
-            red,
-            green,
-            blue,
-        }
+        Self { red, green, blue }
     }
 }

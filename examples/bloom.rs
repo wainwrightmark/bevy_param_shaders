@@ -11,7 +11,7 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default()))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<CircleShader>::default()))
         .add_systems(Startup, setup)
         .run();
 }
@@ -19,12 +19,12 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader;
+pub struct CircleShader;
 
-impl ParameterizedShader for MyShader {
+impl ParameterizedShader for CircleShader {
     fn fragment_body() -> impl Display {
         r#"
-        let d = smud::sd_circle(in.pos, 0.7);
+        let d = smud::sd_circle(in.pos, 1.0);
         let a = smud::sd_fill_alpha_fwidth(d);
         return vec4<f32>(in.color.rgb, a * in.color.a);
         "#
@@ -38,22 +38,22 @@ impl ParameterizedShader for MyShader {
         .into_iter()
     }
 
-    type Params = MyParams;
+    type Params = ColorParams;
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct MyParams {
+pub struct ColorParams {
     pub color: LinearRGBA,
 }
 
-impl ShaderParams for MyParams {}
+impl ShaderParams for ColorParams {}
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<MyShader> {
+        shape: ShaderShape::<CircleShader> {
             frame: Frame::Quad(1.0),
-            parameters: MyParams {
+            parameters: ColorParams {
                 color: Color::ORANGE_RED.into(),
             },
         },
