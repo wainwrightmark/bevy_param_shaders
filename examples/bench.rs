@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
-use bevy_param_shaders::{prelude::*};
+use bevy_param_shaders::prelude::*;
 use bytemuck::{Pod, Zeroable};
 use rand::prelude::*;
 
@@ -19,7 +19,7 @@ fn main() {
             DefaultPlugins,
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
-            SmudPlugin::<MyShader>::default(),
+            ParamShaderPlugin::<MyShader>::default(),
             PanCamPlugin,
         ))
         .add_systems(Startup, setup)
@@ -33,25 +33,28 @@ fn main() {
 pub struct MyShader;
 
 impl ParameterizedShader for MyShader {
-
     fn fragment_body() -> impl Display {
         r#"
         let d = smud::bevy::sdf(in.pos);
-        let a = smud::sd_fill_alpha_fwidth(d);
-        return vec4<f32>(in.color.rgb, a * in.color.a);
+        let color = smud::default_fill::fill(d, in.color);
+        return color;
         "#
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
-        [FragmentImport {
-            path: "smud.wgsl",
-            import_path: "smud",
-        },FragmentImport {
-            path: "bevy.wgsl",
-            import_path: "smud::bevy",
-        }
-
-
+        [
+            FragmentImport {
+                path: "smud.wgsl",
+                import_path: "smud",
+            },
+            FragmentImport {
+                path: "bevy.wgsl",
+                import_path: "smud::bevy",
+            },
+            FragmentImport{
+                path: "cubic_falloff.wgsl",
+                import_path: "smud::default_fill"
+            }
         ]
         .into_iter()
     }
@@ -111,7 +114,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }
 
-// fn update(mut query: Query<(&mut Transform, &Index), With<SmudShape>>, time: Res<Time>) {
+// fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {
 //     let t = time.time_since_startup().as_secs_f64();
 
 //     for (mut tx, index) in query.iter_mut() {

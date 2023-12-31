@@ -11,7 +11,7 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default()))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default()))
         .add_systems(Startup, setup)
         .run();
 }

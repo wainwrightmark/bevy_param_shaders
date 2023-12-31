@@ -16,7 +16,7 @@ fn main() {
         .add_collection_to_loading_state::<_, AssetHandles>(GameState::Loading)
         .add_plugins((
             DefaultPlugins,
-            SmudPlugin::<SmudSDF, SmudFill>::default(),
+            ParamShaderPlugin::<SmudSDF, SmudFill>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
             PanCamPlugin,
@@ -103,13 +103,13 @@ fn setup(
             let index = i + j * w;
 
             commands.spawn((
-                ShapeBundle {
+                ShaderBundle {
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,
                         j as f32 * spacing - h as f32 * spacing / 2.,
                         0.,
                     )),
-                    shape: SmudShape {
+                    shape: ShaderShape::<MyShader> {
                         color,
                         // sdf_shader: shaders[index % shaders.len()].clone(),
                         frame: Frame::Quad(50.),
@@ -132,7 +132,7 @@ fn setup(
     commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }
 
-// fn update(mut query: Query<(&mut Transform, &Index), With<SmudShape>>, time: Res<Time>) {
+// fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {
 //     let t = time.time_since_startup().as_secs_f64();
 
 //     for (mut tx, index) in query.iter_mut() {

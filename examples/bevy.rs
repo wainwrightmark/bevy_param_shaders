@@ -1,6 +1,9 @@
-use bevy::prelude::*;
+use std::fmt::Display;
+
+use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
+use bytemuck::{Pod, Zeroable};
 
 fn main() {
     App::new()
@@ -8,22 +11,64 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default(), PanCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let bevy_shape_shader = asset_server.load("bevy.wgsl");
+#[repr(C)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+pub struct MyShader;
 
-    commands.spawn(ShapeBundle {
-        shape: SmudShape {
-            color: Color::rgb(0.36, 0.41, 0.45),
-            frame: Frame::Quad(400.),
+impl ParameterizedShader for MyShader {
+    fn fragment_body() -> impl Display {
+        r#"
+        let d = smud::bevy::sdf(in.pos);
+        let color = smud::default_fill::fill(d, in.color);
+        return color;
+        "#
+    }
+
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [
+            FragmentImport {
+                path: "smud.wgsl",
+                import_path: "smud",
+            },
+            FragmentImport {
+                path: "bevy.wgsl",
+                import_path: "smud::bevy",
+            },
+            FragmentImport{
+                path: "cubic_falloff.wgsl",
+                import_path: "smud::default_fill"
+            }
+        ]
+        .into_iter()
+    }
+
+    type Params = MyParams;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct MyParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for MyParams {}
+
+fn setup(mut commands: Commands) {
+
+    commands.spawn(ShaderBundle {
+        shape: ShaderShape::<MyShader> {
+            parameters: MyParams {
+                color: Color::rgb(0.36, 0.41, 0.45).into(),
+            },
+            frame: Frame::Quad(295.),
             ..default()
         },
-        sdf: SmudSDF{handle: bevy_shape_shader.into()},
-        fill: SmudFill::default(),
         ..default()
     });
 

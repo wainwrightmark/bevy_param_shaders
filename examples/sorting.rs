@@ -8,16 +8,16 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, SmudPlugin::<MyShader>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default(), PanCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }
 
 fn setup(mut commands: Commands, mut shaders: ResMut<Assets<Shader>>) {
     // pupil
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 3.),
-        shape: SmudShape {
+        shape: ShaderShape::<MyShader> {
             color: Color::rgb(0.0, 0.0, 0.0),
 
             frame: Frame::Quad(80.),
@@ -33,9 +33,9 @@ fn setup(mut commands: Commands, mut shaders: ResMut<Assets<Shader>>) {
     });
 
     // iris
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 2.),
-        shape: SmudShape {
+        shape: ShaderShape::<MyShader> {
             color: Color::rgb(0.46, 0.42, 0.80),
 
             frame: Frame::Quad(200.),
@@ -50,9 +50,9 @@ fn setup(mut commands: Commands, mut shaders: ResMut<Assets<Shader>>) {
     });
 
     // sclera
-    commands.spawn(ShapeBundle {
+    commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 1.),
-        shape: SmudShape {
+        shape: ShaderShape::<MyShader> {
             color: Color::rgb(0.83, 0.82, 0.80),
 
             frame: Frame::Quad(400.),

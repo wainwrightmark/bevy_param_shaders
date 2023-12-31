@@ -56,7 +56,6 @@ mod fragment_shader;
 mod helpers;
 pub mod parameterized_shader;
 mod pipeline_key;
-mod sdf_assets;
 mod shader_loading;
 mod util;
 mod vertex_shader;
@@ -68,19 +67,19 @@ mod vertex_shader;
 /// use bevy_param_shaders::prelude::*;
 /// ```
 pub mod prelude {
-    pub use crate::{parameterized_shader::*, Frame, ShaderBundle, ShaderShape, SmudPlugin};
+    pub use crate::{parameterized_shader::*, Frame, ShaderBundle, ShaderShape, ParamShaderPlugin};
 }
 
 /// Main plugin for enabling rendering of Sdf shapes
-pub struct SmudPlugin<SHADER: ParameterizedShader>(PhantomData<SHADER>);
+pub struct ParamShaderPlugin<SHADER: ParameterizedShader>(PhantomData<SHADER>);
 
-impl<SHADER: ParameterizedShader> Default for SmudPlugin<SHADER> {
+impl<SHADER: ParameterizedShader> Default for ParamShaderPlugin<SHADER> {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<SHADER: ParameterizedShader> Plugin for SmudPlugin<SHADER> {
+impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
     fn build(&self, app: &mut App) {
         // All the messy boiler-plate for loading a bunch of shaders
         app.add_plugins(ShaderLoadingPlugin::<SHADER>::default());
