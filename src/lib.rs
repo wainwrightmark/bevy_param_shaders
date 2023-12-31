@@ -469,62 +469,67 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
     mut phases: Query<&mut RenderPhase<Transparent2d>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
-    let globals = globals_buffer.buffer.binding().unwrap(); // todo if-let
+    let Some(globals) = globals_buffer.buffer.binding() else {
+        return;
+    };
 
-    if let Some(view_binding) = view_uniforms.uniforms.binding() {
-        let mut batches: Vec<(Entity, ShapeBatch)> = Vec::with_capacity(*previous_len);
+    let Some(view_binding) = view_uniforms.uniforms.binding() else {
+        return;
+    };
 
-        // Clear the vertex buffer
-        shape_meta.vertices.clear();
+    let mut batches: Vec<(Entity, ShapeBatch)> = Vec::with_capacity(*previous_len);
 
-        shape_meta.view_bind_group = Some(render_device.create_bind_group(
-            "smud_shape_view_bind_group",
-            &smud_pipeline.view_layout,
-            &BindGroupEntries::sequential((view_binding, globals.clone())),
-        ));
+    // Clear the vertex buffer
+    shape_meta.vertices.clear();
 
-        // Vertex buffer index
-        let mut index = 0;
+    shape_meta.view_bind_group = Some(render_device.create_bind_group(
+        "smud_shape_view_bind_group",
+        &smud_pipeline.view_layout,
+        &BindGroupEntries::sequential((view_binding, globals.clone())),
+    ));
 
-        for mut transparent_phase in &mut phases {
-            let mut batch_item_index = 0;
+    // Vertex buffer index
+    let mut index = 0;
 
-            let mut start_new_batch = true;
+    for mut transparent_phase in &mut phases {
+        let mut batch_item_index: Option<usize> = None;
 
-            // Iterate through the phase items and detect when successive shapes that can be batched.
-            // Spawn an entity with a `ShapeBatch` component for each possible batch.
-            // Compatible items share the same entity.
-            for item_index in 0..transparent_phase.items.len() {
-                let item = &transparent_phase.items[item_index];
-                let Some(extracted_shape) = extracted_shapes.shapes.get(&item.entity) else {
-                    start_new_batch = true;
-                    continue;
-                };
+        // Iterate through the phase items and detect when successive shapes that can be batched.
+        // Spawn an entity with a `ShapeBatch` component for each possible batch.
+        // Compatible items share the same entity.
+        for item_index in 0..transparent_phase.items.len() {
+            let item = &transparent_phase.items[item_index];
+            let Some(extracted_shape) = extracted_shapes.shapes.get(&item.entity) else {
+                batch_item_index = None;
+                continue;
+            };
 
-                let position = extracted_shape.transform.translation();
-                let position = position.into();
+            let position = extracted_shape.transform.translation();
+            let position = position.into();
 
-                let rotation_and_scale = extracted_shape
-                    .transform
-                    .affine()
-                    .transform_vector3(Vec3::X)
-                    .xy();
+            let rotation_and_scale = extracted_shape
+                .transform
+                .affine()
+                .transform_vector3(Vec3::X)
+                .xy();
 
-                let scale = rotation_and_scale.length();
-                let rotation = (rotation_and_scale / scale).into();
+            let scale = rotation_and_scale.length();
+            let rotation = (rotation_and_scale / scale).into();
 
-                let vertex = ShapeVertex {
-                    position,
-                    params: extracted_shape.params,
-                    rotation,
-                    scale,
-                    frame: extracted_shape.frame,
-                };
+            let vertex = ShapeVertex {
+                position,
+                params: extracted_shape.params,
+                rotation,
+                scale,
+                frame: extracted_shape.frame,
+            };
 
-                shape_meta.vertices.push(vertex);
+            shape_meta.vertices.push(vertex);
 
-                if start_new_batch {
-                    batch_item_index = item_index;
+            let batch_item_index = match batch_item_index {
+                Some(i) => i,
+                None => {
+                    batch_item_index = Some(item_index);
 
                     batches.push((
                         item.entity,
@@ -532,25 +537,26 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
                             range: index..index,
                         },
                     ));
-                    start_new_batch = false;
-                }
 
-                transparent_phase.items[batch_item_index]
-                    .batch_range_mut()
-                    .end += 1;
+                    item_index
+                },
+            };
 
-                batches.last_mut().unwrap().1.range.end += 1;
-                index += 1;
-            }
+            transparent_phase.items[batch_item_index]
+                .batch_range_mut()
+                .end += 1;
+
+            batches.last_mut().unwrap().1.range.end += 1;
+            index += 1;
         }
-
-        shape_meta
-            .vertices
-            .write_buffer(&render_device, &render_queue);
-
-        *previous_len = batches.len();
-        commands.insert_or_spawn_batch(batches);
     }
+
+    shape_meta
+        .vertices
+        .write_buffer(&render_device, &render_queue);
+
+    *previous_len = batches.len();
+    commands.insert_or_spawn_batch(batches);
 }
 
 #[repr(C)]
