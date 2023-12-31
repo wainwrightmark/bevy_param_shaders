@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::{prelude::*, reflect::TypeUuid, core_pipeline::bloom::BloomSettings};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 use bytemuck::{Pod, Zeroable};
@@ -13,6 +13,7 @@ fn main() {
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins((DefaultPlugins, ParamShaderPlugin::<CircleShader>::default()))
         .add_systems(Startup, setup)
+        .add_systems(Update, change_bloom)
         .run();
 }
 
@@ -75,4 +76,24 @@ fn setup(mut commands: Commands) {
             ..default()
         },
     ));
+}
+
+
+fn change_bloom(mut query: Query<&mut BloomSettings>, mut up: Local<bool>){
+    for mut settings in query.iter_mut(){
+        if *up{
+            settings.intensity += 0.001;
+            if settings.intensity >= 0.90{
+                *up = false;
+            }
+        }
+        else{
+            settings.intensity -= 0.001;
+            if settings.intensity <= 0.5{
+                *up =  true;
+            }
+        }
+
+
+    }
 }

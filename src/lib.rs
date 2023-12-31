@@ -67,7 +67,7 @@ mod vertex_shader;
 /// use bevy_param_shaders::prelude::*;
 /// ```
 pub mod prelude {
-    pub use crate::{parameterized_shader::*, Frame, ShaderBundle, ShaderShape, ParamShaderPlugin};
+    pub use crate::{parameterized_shader::*, Frame, ParamShaderPlugin, ShaderBundle, ShaderShape};
 }
 
 /// Main plugin for enabling rendering of Sdf shapes
@@ -346,16 +346,9 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHA
     }
 }
 
-#[derive(Component, Clone, Debug)]
-struct ExtractedShape<PARAMS: ShaderParams> {
-    params: PARAMS,
-    frame: f32,
-    transform: GlobalTransform,
-}
-
 #[derive(Resource, Debug)]
 struct ExtractedShapes<SHADER: ParameterizedShader> {
-    shapes: EntityHashMap<Entity, ExtractedShape<SHADER::Params>>,
+    shapes: EntityHashMap<Entity, ShapeVertex<SHADER::Params>>,
 }
 
 impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
@@ -386,14 +379,9 @@ fn extract_shapes<SHADER: ParameterizedShader>(
 
         let Frame::Quad(frame) = shape.frame;
 
-        extracted_shapes.shapes.insert(
-            entity,
-            ExtractedShape {
-                params: shape.parameters,
-                transform: *transform,
-                frame,
-            },
-        );
+        extracted_shapes
+            .shapes
+            .insert(entity, ShapeVertex::new(transform, frame, shape.parameters));
     }
 }
 
@@ -440,7 +428,7 @@ fn queue_shapes<SHADER: ParameterizedShader>(
             let pipeline = pipelines.specialize(&pipeline_cache, &smud_pipeline, specialize_key);
 
             // These items will be sorted by depth with other phase items
-            let sort_key = FloatOrd(extracted_shape.transform.translation().z);
+            let sort_key = FloatOrd(extracted_shape.position[2]);
 
             // Add the item to the render phase
             transparent_phase.add(Transparent2d {
@@ -503,27 +491,7 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
                 continue;
             };
 
-            let position = extracted_shape.transform.translation();
-            let position = position.into();
-
-            let rotation_and_scale = extracted_shape
-                .transform
-                .affine()
-                .transform_vector3(Vec3::X)
-                .xy();
-
-            let scale = rotation_and_scale.length();
-            let rotation = (rotation_and_scale / scale).into();
-
-            let vertex = ShapeVertex {
-                position,
-                params: extracted_shape.params,
-                rotation,
-                scale,
-                frame: extracted_shape.frame,
-            };
-
-            shape_meta.vertices.push(vertex);
+            shape_meta.vertices.push(*extracted_shape);
 
             let batch_item_index = match batch_item_index {
                 Some(i) => i,
@@ -538,7 +506,7 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
                     ));
 
                     item_index
-                },
+                }
             };
 
             transparent_phase.items[batch_item_index]
@@ -566,6 +534,26 @@ struct ShapeVertex<PARAMS: ShaderParams> {
     pub position: [f32; 3],
     pub rotation: [f32; 2],
     pub scale: f32,
+}
+
+impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
+    pub fn new(transform: &GlobalTransform, frame: f32, params: PARAMS) -> Self {
+        let position = transform.translation();
+        let position = position.into();
+
+        let rotation_and_scale = transform.affine().transform_vector3(Vec3::X).xy();
+
+        let scale = rotation_and_scale.length();
+        let rotation = (rotation_and_scale / scale).into();
+
+        ShapeVertex {
+            position,
+            params,
+            rotation,
+            scale,
+            frame,
+        }
+    }
 }
 
 unsafe impl<PARAMS: ShaderParams> Pod for ShapeVertex<PARAMS> {}
