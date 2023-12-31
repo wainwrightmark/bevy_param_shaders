@@ -78,34 +78,52 @@ impl ShaderParams for ColorParams{
 
 
 fn setup(mut commands: Commands) {
-    // pupil
     commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 3.).with_scale(Vec3::ONE * 70.0),
+        transform: Transform::from_translation(Vec3::Z * 4.).with_scale(Vec3::ONE * 100.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams { color: Color::rgb(0.0, 0.0, 0.0).into() },
+            parameters: ColorParams { color: Color::RED.into() },
             frame: Frame::Quad(1.),
             ..default()
         },
         ..default()
     });
-
-    // iris
     commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 2.).with_scale(Vec3::ONE * 150.0),
-        shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::rgb(0.46, 0.42, 0.80).into()},
-
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
-
-    // sclera
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 1.).with_scale(Vec3::ONE * 400.0),
+        transform: Transform::from_translation(Vec3::Z * 3.).with_scale(Vec3::ONE * 150.0),
         shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::rgb(0.83, 0.82, 0.80).into()},
+            parameters: ColorParams {color: Color::GREEN.into()},
+
+            frame: Frame::Quad(1.),
+            ..default()
+        },
+        ..default()
+    });
+
+    commands.spawn(ShaderBundle {
+        transform: Transform::from_translation(Vec3::Z * 2.).with_scale(Vec3::ONE * 225.0),
+        shape: ShaderShape::<CircleShader> {
+            parameters: ColorParams {color: Color::WHITE.into()},
+
+            frame: Frame::Quad(1.),
+            ..default()
+        },
+        ..default()
+    });
+
+    commands.spawn(ShaderBundle {
+        transform: Transform::from_translation(Vec3::Z * 1.).with_scale(Vec3::ONE * 300.0),
+        shape: ShaderShape::<VesicaShader> {
+            parameters: ColorParams {color: Color::BLUE.into()},
+
+            frame: Frame::Quad(1.),
+            ..default()
+        },
+        ..default()
+    });
+
+    commands.spawn(ShaderBundle {
+        transform: Transform::from_translation(Vec3::Z * 0.).with_scale(Vec3::ONE * 450.0),
+        shape: ShaderShape::<CircleShader> {
+            parameters: ColorParams {color: Color::BLACK.into()},
 
             frame: Frame::Quad(1.),
             ..default()
