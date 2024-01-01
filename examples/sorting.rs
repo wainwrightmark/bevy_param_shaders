@@ -10,7 +10,10 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<CircleShader>::default(),ParamShaderPlugin::<VesicaShader>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins,
+            ParamShaderPlugin::<CircleShader>::default(),
+            ParamShaderPlugin::<VesicaShader>::default(),
+            PanCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }
@@ -81,7 +84,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 4.).with_scale(Vec3::ONE * 100.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams { color: Color::RED.into() },
+            parameters: ColorParams { color: Color::RED.with_a(0.5).into() },
             frame: Frame::Quad(1.),
             ..default()
         },
@@ -90,7 +93,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 3.).with_scale(Vec3::ONE * 150.0),
         shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::GREEN.into()},
+            parameters: ColorParams {color: Color::GREEN.with_a(0.5).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -101,7 +104,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 2.).with_scale(Vec3::ONE * 225.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::WHITE.into()},
+            parameters: ColorParams {color: Color::WHITE.with_a(0.5).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -112,7 +115,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 1.).with_scale(Vec3::ONE * 300.0),
         shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::BLUE.into()},
+            parameters: ColorParams {color: Color::BLUE.with_a(0.5).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -123,7 +126,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 0.).with_scale(Vec3::ONE * 450.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::BLACK.into()},
+            parameters: ColorParams {color: Color::BLACK.with_a(0.5).into()},
 
             frame: Frame::Quad(1.),
             ..default()

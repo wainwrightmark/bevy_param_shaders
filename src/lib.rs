@@ -17,8 +17,8 @@ use bevy::{
     render::{
         globals::{GlobalsBuffer, GlobalsUniform},
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            RenderPhase, SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, DrawFunctionId, DrawFunctions, PhaseItem, RenderCommand,
+            RenderCommandResult, RenderPhase, SetItemPipeline, TrackedRenderPass,
         },
         render_resource::{
             BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -31,16 +31,12 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         texture::BevyDefault,
-        view::{
-            ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
-            VisibleEntities,
-        },
+        view::{ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms},
         Extract, Render, RenderApp, RenderSet,
     },
-    utils::{EntityHashMap, FloatOrd},
+    utils::{hashbrown::HashMap, FloatOrd},
 };
 use bytemuck::{Pod, Zeroable};
-use fixedbitset::FixedBitSet;
 use pipeline_key::PipelineKey;
 use shader_loading::*;
 // use ui::UiShapePlugin;
@@ -67,7 +63,21 @@ mod vertex_shader;
 /// use bevy_param_shaders::prelude::*;
 /// ```
 pub mod prelude {
-    pub use crate::{parameterized_shader::*, Frame, ShaderBundle, ShaderShape, ParamShaderPlugin};
+    pub use crate::{parameterized_shader::*, Frame, ParamShaderPlugin, ShaderBundle, ShaderShape};
+}
+
+#[derive(Debug, Default)]
+struct ParameterShadersPlugin;
+
+impl Plugin for ParameterShadersPlugin {
+    fn build(&self, app: &mut App) {
+        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+            render_app.add_systems(
+                Render,
+                prepare_all_shapes.in_set(RenderSet::PrepareBindGroups),
+            );
+        };
+    }
 }
 
 /// Main plugin for enabling rendering of Sdf shapes
@@ -81,9 +91,10 @@ impl<SHADER: ParameterizedShader> Default for ParamShaderPlugin<SHADER> {
 
 impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
     fn build(&self, app: &mut App) {
-        // All the messy boiler-plate for loading a bunch of shaders
         app.add_plugins(ShaderLoadingPlugin::<SHADER>::default());
-        // app.add_plugins(UiShapePlugin);
+        if !app.is_plugin_added::<ParameterShadersPlugin>() {
+            app.add_plugins(ParameterShadersPlugin);
+        }
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
@@ -348,6 +359,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHA
 
 #[derive(Component, Clone, Debug)]
 struct ExtractedShape<PARAMS: ShaderParams> {
+    entity: Entity,
     params: PARAMS,
     frame: f32,
     transform: GlobalTransform,
@@ -355,7 +367,7 @@ struct ExtractedShape<PARAMS: ShaderParams> {
 
 #[derive(Resource, Debug)]
 struct ExtractedShapes<SHADER: ParameterizedShader> {
-    shapes: EntityHashMap<Entity, ExtractedShape<SHADER::Params>>,
+    shapes: Vec<ExtractedShape<SHADER::Params>>,
 }
 
 impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
@@ -386,53 +398,55 @@ fn extract_shapes<SHADER: ParameterizedShader>(
 
         let Frame::Quad(frame) = shape.frame;
 
-        extracted_shapes.shapes.insert(
+        extracted_shapes.shapes.push(ExtractedShape {
             entity,
-            ExtractedShape {
-                params: shape.parameters,
-                transform: *transform,
-                frame,
-            },
-        );
+            params: shape.parameters,
+            transform: *transform,
+            frame,
+        });
     }
 }
 
 fn queue_shapes<SHADER: ParameterizedShader>(
-    mut view_entities: Local<FixedBitSet>,
+    // mut view_entities: Local<FixedBitSet>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     smud_pipeline: Res<SmudPipeline<SHADER>>,
     mut pipelines: ResMut<SpecializedRenderPipelines<SmudPipeline<SHADER>>>,
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
-    extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
+    mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
     mut views: Query<(
         &mut RenderPhase<Transparent2d>,
-        &VisibleEntities,
+        // &VisibleEntities,
         &ExtractedView,
     )>,
     // ?
 ) {
-    let draw_smud_shape_function = draw_functions
+    let draw_function = draw_functions
         .read()
         .get_id::<DrawSmudShape<SHADER>>()
         .unwrap();
 
+    radsort::sort_by_key(&mut extracted_shapes.as_mut().shapes, |item| {
+        item.transform.translation().z
+    });
+
     // Iterate over each view (a camera is a view)
-    for (mut transparent_phase, visible_entities, view) in &mut views {
+    for (mut transparent_phase, view) in &mut views {
         // todo: bevy_sprite does some hdr stuff, should we?
         // let mut view_key = SpritePipelineKey::from_hdr(view.hdr) | msaa_key;
 
         let mesh_key = PipelineKey::from_msaa_samples(msaa.samples())
             | PipelineKey::from_primitive_topology(PrimitiveTopology::TriangleStrip);
 
-        view_entities.clear();
-        view_entities.extend(visible_entities.entities.iter().map(|e| e.index() as usize));
+        // view_entities.clear();
+        // view_entities.extend(visible_entities.entities.iter().map(|e| e.index() as usize));
 
         transparent_phase
             .items
             .reserve(extracted_shapes.shapes.len());
 
-        for (entity, extracted_shape) in extracted_shapes.shapes.iter() {
+        for extracted_shape in extracted_shapes.shapes.iter() {
             let specialize_key = SmudPipelineKey {
                 mesh: mesh_key,
                 hdr: view.hdr,
@@ -444,9 +458,9 @@ fn queue_shapes<SHADER: ParameterizedShader>(
 
             // Add the item to the render phase
             transparent_phase.add(Transparent2d {
-                draw_function: draw_smud_shape_function,
+                draw_function,
                 pipeline,
-                entity: *entity,
+                entity: extracted_shape.entity,
                 sort_key,
                 // batch_range and dynamic_offset will be calculated in prepare_shapes
                 batch_range: 0..0,
@@ -457,15 +471,12 @@ fn queue_shapes<SHADER: ParameterizedShader>(
 }
 
 fn prepare_shapes<SHADER: ParameterizedShader>(
-    mut commands: Commands,
-    mut previous_len: Local<usize>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     mut shape_meta: ResMut<ShapeMeta<SHADER>>,
     view_uniforms: Res<ViewUniforms>,
     smud_pipeline: Res<SmudPipeline<SHADER>>,
     extracted_shapes: Res<ExtractedShapes<SHADER>>,
-    mut phases: Query<&mut RenderPhase<Transparent2d>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
     let Some(globals) = globals_buffer.buffer.binding() else {
@@ -476,8 +487,6 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
         return;
     };
 
-    let mut batches: Vec<(Entity, ShapeBatch)> = Vec::with_capacity(*previous_len);
-
     // Clear the vertex buffer
     shape_meta.vertices.clear();
 
@@ -487,43 +496,45 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
         &BindGroupEntries::sequential((view_binding, globals.clone())),
     ));
 
-    // Vertex buffer index
-    let mut index = 0;
+    shape_meta
+        .vertices
+        .extend(extracted_shapes.shapes.iter().map(|extracted_shape| {
+            ShapeVertex::new(
+                &extracted_shape.transform,
+                extracted_shape.frame,
+                extracted_shape.params,
+            )
+        }));
+
+    shape_meta
+        .vertices
+        .write_buffer(&render_device, &render_queue);
+}
+
+fn prepare_all_shapes(
+    mut commands: Commands,
+    mut previous_len: Local<usize>,
+    mut phases: Query<&mut RenderPhase<Transparent2d>>,
+) {
+    let mut batches: Vec<(Entity, ShapeBatch)> = Vec::with_capacity(*previous_len);
+    let mut indices: HashMap<DrawFunctionId, u32> = Default::default(); //todo we don't actually need a hash set here
 
     for mut transparent_phase in &mut phases {
         let mut batch_item_index: Option<usize> = None;
+        let mut current_draw_function: Option<DrawFunctionId> = None;
+        let mut current_index: &mut u32 = &mut 0;
 
         // Iterate through the phase items and detect when successive shapes that can be batched.
         // Spawn an entity with a `ShapeBatch` component for each possible batch.
         // Compatible items share the same entity.
         for item_index in 0..transparent_phase.items.len() {
             let item = &transparent_phase.items[item_index];
-            let Some(extracted_shape) = extracted_shapes.shapes.get(&item.entity) else {
+
+            if Some(item.draw_function) != current_draw_function {
+                current_draw_function = Some(item.draw_function);
+                current_index = indices.entry(item.draw_function).or_insert(0);
                 batch_item_index = None;
-                continue;
-            };
-
-            let position = extracted_shape.transform.translation();
-            let position = position.into();
-
-            let rotation_and_scale = extracted_shape
-                .transform
-                .affine()
-                .transform_vector3(Vec3::X)
-                .xy();
-
-            let scale = rotation_and_scale.length();
-            let rotation = (rotation_and_scale / scale).into();
-
-            let vertex = ShapeVertex {
-                position,
-                params: extracted_shape.params,
-                rotation,
-                scale,
-                frame: extracted_shape.frame,
-            };
-
-            shape_meta.vertices.push(vertex);
+            }
 
             let batch_item_index = match batch_item_index {
                 Some(i) => i,
@@ -533,12 +544,12 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
                     batches.push((
                         item.entity,
                         ShapeBatch {
-                            range: index..index,
+                            range: *current_index..*current_index,
                         },
                     ));
 
                     item_index
-                },
+                }
             };
 
             transparent_phase.items[batch_item_index]
@@ -546,13 +557,9 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
                 .end += 1;
 
             batches.last_mut().unwrap().1.range.end += 1;
-            index += 1;
+            *current_index += 1;
         }
     }
-
-    shape_meta
-        .vertices
-        .write_buffer(&render_device, &render_queue);
 
     *previous_len = batches.len();
     commands.insert_or_spawn_batch(batches);
@@ -566,6 +573,26 @@ struct ShapeVertex<PARAMS: ShaderParams> {
     pub position: [f32; 3],
     pub rotation: [f32; 2],
     pub scale: f32,
+}
+
+impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
+    pub fn new(transform: &GlobalTransform, frame: f32, params: PARAMS) -> Self {
+        let position = transform.translation();
+        let position = position.into();
+
+        let rotation_and_scale = transform.affine().transform_vector3(Vec3::X).xy();
+
+        let scale = rotation_and_scale.length();
+        let rotation = (rotation_and_scale / scale).into();
+
+        ShapeVertex {
+            position,
+            params,
+            rotation,
+            scale,
+            frame,
+        }
+    }
 }
 
 unsafe impl<PARAMS: ShaderParams> Pod for ShapeVertex<PARAMS> {}
@@ -585,7 +612,7 @@ impl<SHADER: ParameterizedShader> Default for ShapeMeta<SHADER> {
     }
 }
 
-#[derive(Component, Eq, PartialEq, Clone)]
+#[derive(Component, Eq, PartialEq, Clone, Debug)]
 pub(crate) struct ShapeBatch {
     range: Range<u32>,
 }
