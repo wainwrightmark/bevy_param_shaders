@@ -1,13 +1,10 @@
-use std::{borrow::Cow, fmt::Display};
-
+use bevy::reflect::TypeUuid;
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
 };
-use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
 use rand::prelude::*;
 
 fn main() {
@@ -28,15 +25,15 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyBirdShader;
 
 impl ParameterizedShader for BevyBirdShader {
     fn fragment_body() -> impl Into<String> {
-        SDFColorCall{
-            sdf:"smud::bevy::sdf(in.pos)",
-            fill_color: "smud::default_fill::fill(d, in.color)"
+        SDFColorCall {
+            sdf: "smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)",
         }
     }
 
@@ -50,18 +47,16 @@ impl ParameterizedShader for BevyBirdShader {
                 path: "bevy.wgsl",
                 import_path: "smud::bevy",
             },
-            FragmentImport{
+            FragmentImport {
                 path: "cubic_falloff.wgsl",
-                import_path: "smud::default_fill"
-            }
+                import_path: "smud::default_fill",
+            },
         ]
         .into_iter()
     }
 
     type Params = ColorParams;
 }
-
-
 
 #[derive(Component)]
 struct Index(usize);
@@ -79,10 +74,10 @@ fn setup(mut commands: Commands) {
     for i in 0..w {
         for j in 0..h {
             let color = Color::Rgba {
-                red: rng.gen_range(0.0..=1.0),
-                green: rng.gen_range(0.0..=1.0),
-                blue: rng.gen_range(0.0..=1.0),
-                alpha: rng.gen_range(0.0..=1.0),
+                red: rng.gen_range(0.1..=1.0),
+                green: rng.gen_range(0.1..=1.0),
+                blue: rng.gen_range(0.1..=1.0),
+                alpha: rng.gen_range(0.5..=1.0),
             };
 
             commands.spawn((

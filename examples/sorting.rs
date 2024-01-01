@@ -20,7 +20,7 @@ fn main() {
 
 
 #[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
 #[uuid = "b5a9b5d8-32b8-4d63-8e01-45ae42b96d1d"]
 pub struct VesicaShader;
 
@@ -45,7 +45,7 @@ impl ParameterizedShader for VesicaShader {
 }
 
 #[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
+#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct CircleShader;
 
