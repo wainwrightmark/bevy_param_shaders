@@ -152,10 +152,9 @@ fn setup(mut commands: Commands) {
                 1 => spawn_bundle!(CircleShader),
                 2 => spawn_bundle!(HeartShader),
                 3 => spawn_bundle!(MoonShader),
-                4 => spawn_bundle!(BoxShader),
-                5 => spawn_bundle!(PieShader),
-                6 => spawn_bundle!(EggShader),
-                7 => spawn_bundle!(RoundedXShader),
+                4 => spawn_bundle!(PieShader),
+                5 => spawn_bundle!(EggShader),
+                6 => spawn_bundle!(RoundedXShader),
                 _ => spawn_bundle!(EllipseShader),
             };
 
