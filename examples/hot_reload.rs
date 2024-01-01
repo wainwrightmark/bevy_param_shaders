@@ -9,7 +9,7 @@ fn main() {
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default()))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<BevyBirdShader>::default()))
         .add_systems(Startup, setup)
         .run();
 }
@@ -17,15 +17,14 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader;
+pub struct BevyBirdShader;
 
-impl ParameterizedShader for MyShader {
-    fn fragment_body() -> impl Display {
-        r#"
-        let d = smud::bevy::sdf(in.pos);
-        let color = smud::default_fill::fill(d, in.color);
-        return color;
-        "#
+impl ParameterizedShader for BevyBirdShader {
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall{
+            sdf:"smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)"
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -46,7 +45,7 @@ impl ParameterizedShader for MyShader {
         .into_iter()
     }
 
-    type Params = MyParams;
+    type Params = ColorParams;
 }
 
 #[repr(C)]
@@ -66,8 +65,8 @@ fn setup(mut commands: Commands) {
             scale: Vec3::splat(0.4),
             ..default()
         },
-        shape: ShaderShape::<MyShader> {
-            parameters: MyParams { color: Color::WHITE.into() },
+        shape: ShaderShape::<BevyBirdShader> {
+            parameters: Color::WHITE.into(),
 
             frame: Frame::Quad(295.),
             ..Default::default()

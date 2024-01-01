@@ -19,7 +19,7 @@ fn main() {
             DefaultPlugins,
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
-            ParamShaderPlugin::<MyShader>::default(),
+            ParamShaderPlugin::<BevyBirdShader>::default(),
             PanCamPlugin,
         ))
         .add_systems(Startup, setup)
@@ -30,15 +30,14 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader;
+pub struct BevyBirdShader;
 
-impl ParameterizedShader for MyShader {
-    fn fragment_body() -> impl Display {
-        r#"
-        let d = smud::bevy::sdf(in.pos);
-        let color = smud::default_fill::fill(d, in.color);
-        return color;
-        "#
+impl ParameterizedShader for BevyBirdShader {
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall{
+            sdf:"smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)"
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -59,16 +58,10 @@ impl ParameterizedShader for MyShader {
         .into_iter()
     }
 
-    type Params = MyParams;
+    type Params = ColorParams;
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct MyParams {
-    pub color: LinearRGBA,
-}
 
-impl ShaderParams for MyParams {}
 
 #[derive(Component)]
 struct Index(usize);
@@ -94,11 +87,9 @@ fn setup(mut commands: Commands) {
 
             commands.spawn((
                 ShaderBundle {
-                    shape: ShaderShape::<MyShader> {
+                    shape: ShaderShape::<BevyBirdShader> {
                         frame: Frame::Quad(295.0),
-                        parameters: MyParams {
-                            color: color.into(),
-                        },
+                        parameters: color.into(),
                     },
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,

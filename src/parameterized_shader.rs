@@ -1,17 +1,12 @@
-use bevy::reflect::{GetTypeRegistration, Reflect, Struct, TypeUuid};
-use bytemuck::{Pod, Zeroable};
-
-pub trait ShaderParams:
-    Pod + Zeroable + Copy + std::fmt::Debug + Default + Reflect + Struct
-{
-}
+use crate::shader_params::ShaderParams;
+use bevy::reflect::{GetTypeRegistration, TypeUuid};
 
 pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration + 'static {
     type Params: ShaderParams;
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field
     /// It should return `vec4<f32>` representing the color of the pixel
-    fn fragment_body() -> impl std::fmt::Display;
+    fn fragment_body() -> impl Into<String>;
 
     /// Get imports
     fn imports() -> impl Iterator<Item = FragmentImport>;
@@ -22,44 +17,54 @@ pub struct FragmentImport {
     pub import_path: &'static str,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, Pod, Zeroable)]
-pub struct NoParams;
+#[derive(Debug, Clone, Copy)]
+pub struct SDFAlphaCall {
+    /// An 'f32' expression
+    pub sdf: &'static str,
 
-impl ShaderParams for NoParams {}
+    /// An 'f32' expression
+    /// This may use the 'd' parameter
+    pub fill_alpha: &'static str,
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct LinearRGBA {
-    pub red: f32,
-    pub green: f32,
-    pub blue: f32,
-    pub alpha: f32,
+    /// A 'vec4<f32>' expression
+    pub color: &'static str,
 }
 
-impl From<bevy::prelude::Color> for LinearRGBA {
-    fn from(value: bevy::prelude::Color) -> Self {
-        let [red, green, blue, alpha] = value.as_linear_rgba_f32();
-        Self {
-            red,
-            green,
-            blue,
-            alpha,
-        }
+impl Into<String> for SDFAlphaCall {
+    fn into(self) -> String {
+        let SDFAlphaCall {
+            sdf,
+            fill_alpha: fill,
+            color,
+        } = self;
+        format!(
+            r#"let d = {sdf};
+        let a = {fill};
+        let c = {color};
+        return vec4<f32>(c.rgb, c.a * a);
+        "#
+        )
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct LinearRGB {
-    pub red: f32,
-    pub green: f32,
-    pub blue: f32,
+#[derive(Debug, Clone, Copy)]
+pub struct SDFColorCall {
+    /// An 'f32' expression
+    pub sdf: &'static str,
+
+    /// A 'vec4<f32>' expression
+    /// This may use the 'd' parameter
+    pub fill_color: &'static str,
 }
 
-impl From<bevy::prelude::Color> for LinearRGB {
-    fn from(value: bevy::prelude::Color) -> Self {
-        let [red, green, blue, _alpha] = value.as_linear_rgba_f32();
-        Self { red, green, blue }
+impl Into<String> for SDFColorCall {
+    fn into(self) -> String {
+        let SDFColorCall { sdf, fill_color } = self;
+        format!(
+            r#"let d = {sdf};
+        let c = {fill_color};
+        return c;
+        "#
+        )
     }
 }

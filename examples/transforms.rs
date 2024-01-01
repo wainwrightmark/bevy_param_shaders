@@ -15,7 +15,7 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<MyShader>::default(),
+            ParamShaderPlugin::<BevyBirdShader>::default(),
             PanCamPlugin,
         ))
         .add_systems(Startup, setup)
@@ -25,15 +25,14 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader;
+pub struct BevyBirdShader;
 
-impl ParameterizedShader for MyShader {
-    fn fragment_body() -> impl Display {
-        r#"
-        let d = smud::bevy::sdf(in.pos);
-        let color = smud::default_fill::fill(d, in.color);
-        return color;
-        "#
+impl ParameterizedShader for BevyBirdShader {
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall {
+            sdf: "smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)",
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -46,15 +45,15 @@ impl ParameterizedShader for MyShader {
                 path: "bevy.wgsl",
                 import_path: "smud::bevy",
             },
-            FragmentImport{
+            FragmentImport {
                 path: "cubic_falloff.wgsl",
-                import_path: "smud::default_fill"
-            }
+                import_path: "smud::default_fill",
+            },
         ]
         .into_iter()
     }
 
-    type Params = MyParams;
+    type Params = ColorParams;
 }
 
 #[repr(C)]
@@ -66,18 +65,14 @@ pub struct MyParams {
 impl ShaderParams for MyParams {}
 
 fn setup(mut commands: Commands) {
-
-
     let transform = Transform {
         scale: Vec3::splat(0.05),
         translation: Vec3::new(62., 137., 0.),
         rotation: Quat::from_rotation_z(1.0),
     };
 
-    let shape = ShaderShape::<MyShader> {
-        parameters: MyParams {
-            color: Color::rgb(0.36, 0.41, 0.45).into(),
-        },
+    let shape = ShaderShape::<BevyBirdShader> {
+        parameters: Color::rgb(0.36, 0.41, 0.45).into(),
 
         frame: Frame::Quad(295.),
         ..default()

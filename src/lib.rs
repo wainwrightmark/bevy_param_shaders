@@ -39,12 +39,12 @@ use bevy::{
 use bytemuck::{Pod, Zeroable};
 use pipeline_key::PipelineKey;
 use shader_loading::*;
-// use ui::UiShapePlugin;
 
 pub use bundle::ShaderBundle;
 pub use components::*;
 
 use parameterized_shader::*;
+use shader_params::ShaderParams;
 
 mod bundle;
 mod components;
@@ -53,6 +53,7 @@ mod helpers;
 pub mod parameterized_shader;
 mod pipeline_key;
 mod shader_loading;
+pub mod shader_params;
 mod util;
 mod vertex_shader;
 
@@ -63,7 +64,10 @@ mod vertex_shader;
 /// use bevy_param_shaders::prelude::*;
 /// ```
 pub mod prelude {
-    pub use crate::{parameterized_shader::*, Frame, ParamShaderPlugin, ShaderBundle, ShaderShape};
+    pub use crate::{
+        parameterized_shader::*, shader_params::*, Frame, ParamShaderPlugin, ShaderBundle,
+        ShaderShape,
+    };
 }
 
 #[derive(Debug, Default)]
@@ -268,7 +272,13 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHA
 
         for field in proxy.iter_fields() {
             let Some(format) = helpers::get_vertex_format(field.type_id()) else {
-                panic!("Cannot convert {} to wgsl type", field.type_name());
+                panic!(
+                    "Cannot convert {} to wgsl type",
+                    field
+                        .get_represented_type_info()
+                        .map(|info| info.type_path())
+                        .unwrap_or_else(|| field.reflect_type_path())
+                );
             };
 
             vertex_attributes.push(VertexAttribute {

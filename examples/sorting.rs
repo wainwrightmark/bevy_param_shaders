@@ -25,12 +25,12 @@ fn main() {
 pub struct VesicaShader;
 
 impl ParameterizedShader for VesicaShader {
-    fn fragment_body() -> impl std::fmt::Display {
-        r#"
-        let d = smud::sd_vesica(in.pos.yx, 1.0, 0.375);
-        let a = smud::sd_fill_alpha_fwidth(d);
-        return vec4<f32>(in.color.rgb, a * in.color.a);
-        "#
+    fn fragment_body() -> impl Into<String> {
+        SDFAlphaCall{
+            sdf: "smud::sd_vesica(in.pos.yx, 1.0, 0.375)",
+            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
+            color: "in.color",
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -50,12 +50,12 @@ impl ParameterizedShader for VesicaShader {
 pub struct CircleShader;
 
 impl ParameterizedShader for CircleShader {
-    fn fragment_body() -> impl std::fmt::Display {
-        r#"
-        let d = smud::sd_circle(in.pos, 1.0);
-        let a = smud::sd_fill_alpha_fwidth(d);
-        return vec4<f32>(in.color.rgb, a * in.color.a);
-        "#
+    fn fragment_body() -> impl Into<String> {
+        SDFAlphaCall{
+            sdf: "smud::sd_circle(in.pos, 1.0)",
+            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
+            color: "in.color",
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -84,7 +84,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 4.).with_scale(Vec3::ONE * 100.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams { color: Color::RED.with_a(0.5).into() },
+            parameters: ColorParams { color: Color::RED.with_a(0.8).into() },
             frame: Frame::Quad(1.),
             ..default()
         },
@@ -93,7 +93,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 3.).with_scale(Vec3::ONE * 150.0),
         shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::GREEN.with_a(0.5).into()},
+            parameters: ColorParams {color: Color::GREEN.with_a(0.8).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -104,7 +104,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 2.).with_scale(Vec3::ONE * 225.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::WHITE.with_a(0.5).into()},
+            parameters: ColorParams {color: Color::WHITE.with_a(0.8).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -115,7 +115,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 1.).with_scale(Vec3::ONE * 300.0),
         shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::BLUE.with_a(0.5).into()},
+            parameters: ColorParams {color: Color::BLUE.with_a(0.8).into()},
 
             frame: Frame::Quad(1.),
             ..default()
@@ -126,7 +126,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         transform: Transform::from_translation(Vec3::Z * 0.).with_scale(Vec3::ONE * 450.0),
         shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::BLACK.with_a(0.5).into()},
+            parameters: ColorParams {color: Color::BLACK.with_a(0.8).into()},
 
             frame: Frame::Quad(1.),
             ..default()

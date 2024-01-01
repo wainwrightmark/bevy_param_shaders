@@ -11,7 +11,7 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<MyShader>::default(), PanCamPlugin))
+        .add_plugins((DefaultPlugins, ParamShaderPlugin::<BevyBirdShader>::default(), PanCamPlugin))
         .add_systems(Startup, setup)
         .run();
 }
@@ -19,15 +19,14 @@ fn main() {
 #[repr(C)]
 #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default, Pod, Zeroable)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct MyShader;
+pub struct BevyBirdShader;
 
-impl ParameterizedShader for MyShader {
-    fn fragment_body() -> impl Display {
-        r#"
-        let d = smud::bevy::sdf(in.pos);
-        let color = smud::default_fill::fill(d, in.color);
-        return color;
-        "#
+impl ParameterizedShader for BevyBirdShader {
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall{
+            sdf:"smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)"
+        }
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -48,24 +47,16 @@ impl ParameterizedShader for MyShader {
         .into_iter()
     }
 
-    type Params = MyParams;
+    type Params = ColorParams;
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct MyParams {
-    pub color: LinearRGBA,
-}
 
-impl ShaderParams for MyParams {}
 
 fn setup(mut commands: Commands) {
 
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<MyShader> {
-            parameters: MyParams {
-                color: Color::rgb(0.36, 0.41, 0.45).into(),
-            },
+        shape: ShaderShape::<BevyBirdShader> {
+            parameters: Color::rgb(0.36, 0.41, 0.45).into(),
             frame: Frame::Quad(295.),
             ..default()
         },

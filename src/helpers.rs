@@ -1,11 +1,11 @@
 use std::any::TypeId;
 
-use bevy::{
-    math::Vec4,
-    render::render_resource::VertexFormat,
-};
+use bevy::{math::Vec4, render::render_resource::VertexFormat};
 
-use crate::prelude::{LinearRGBA, ShaderParams};
+use crate::{
+    prelude::*,
+    shader_params::{LinearRGB, LinearRGBA},
+};
 
 pub(crate) fn format_params_locations<PARAMS: ShaderParams>() -> String {
     let mut result = "".to_string();
@@ -49,6 +49,8 @@ pub(crate) fn get_wgsl_type_name(type_id: TypeId) -> Option<&'static str> {
         Some("vec4<f32>")
     } else if type_id == TypeId::of::<LinearRGBA>() {
         Some("vec4<f32>")
+    } else if type_id == TypeId::of::<LinearRGB>() {
+        Some("vec3<f32>")
     } else {
         None
     }
@@ -69,6 +71,8 @@ pub(crate) fn get_vertex_format(type_id: TypeId) -> Option<VertexFormat> {
         Some(VertexFormat::Float32x4)
     } else if type_id == TypeId::of::<LinearRGBA>() {
         Some(VertexFormat::Float32x4)
+    } else if type_id == TypeId::of::<LinearRGB>() {
+        Some(VertexFormat::Float32x3)
     } else {
         None
     }
