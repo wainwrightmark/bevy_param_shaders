@@ -1,7 +1,7 @@
 use bevy::reflect::{Reflect, Struct};
 use bytemuck::{Pod, Zeroable};
 pub trait ShaderParams:
-    Pod + Zeroable + Copy + std::fmt::Debug + Default + Reflect + Struct
+    Pod + Zeroable + Copy + std::fmt::Debug + Default + Reflect + Struct + PartialEq
 {
 }
 

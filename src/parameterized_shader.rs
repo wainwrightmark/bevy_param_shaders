@@ -1,7 +1,7 @@
 use crate::shader_params::ShaderParams;
 use bevy::reflect::{GetTypeRegistration, TypeUuid};
 
-pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration + 'static {
+pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration  + 'static {
     type Params: ShaderParams;
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field

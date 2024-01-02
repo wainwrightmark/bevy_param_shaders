@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{parameterized_shader::*, ShaderShape};
 
-#[derive(Bundle, Default, Clone, Debug)]
+#[derive(Bundle, Default, Clone, Debug, PartialEq)]
 pub struct ShaderBundle<SHADER: ParameterizedShader> {
     /// The shape, which describes the color, frame, and additional parameters
     pub shape: ShaderShape<SHADER>,

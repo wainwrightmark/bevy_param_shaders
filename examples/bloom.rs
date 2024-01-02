@@ -39,13 +39,7 @@ impl ParameterizedShader for CircleShader {
     type Params = ColorParams;
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct ColorParams {
-    pub color: LinearRGBA,
-}
 
-impl ShaderParams for ColorParams {}
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {

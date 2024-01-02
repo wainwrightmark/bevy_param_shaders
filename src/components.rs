@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::prelude::ParameterizedShader;
 
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, PartialEq)]
 #[reflect(Component)]
 pub struct ShaderShape<SHADER: ParameterizedShader> {
     /// The outer bounds for the shape, should be bigger than the shape
@@ -20,7 +20,7 @@ impl<SHADER: ParameterizedShader> Default for ShaderShape<SHADER> {
 }
 
 /// Bounds for describing how far the fragment shader of a shape will reach, should be bigger than the shape unless you want to clip it
-#[derive(Reflect, Debug, Clone, Copy)]
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
 pub struct  Frame {
     pub half_width: f32,
     pub half_height: f32// todo: it probably makes sense for this to be the full width instead...
