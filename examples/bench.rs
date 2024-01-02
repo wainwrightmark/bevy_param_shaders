@@ -64,7 +64,7 @@ struct Index(usize);
 fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();
     let spacing = 800.0;
-    let w = 632;
+    let w = 1024;
     let h = w;
     info!("Adding {} shapes", w * h);
 
