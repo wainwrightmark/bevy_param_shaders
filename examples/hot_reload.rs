@@ -1,7 +1,5 @@
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
-
 /// Hot reload doesn't actually seem to work...
 fn main() {
     App::new()
@@ -60,12 +58,20 @@ impl ParameterizedShader for BevyBirdShader {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct MyParams {
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+pub struct ColorParams {
     pub color: LinearRGBA,
 }
 
-impl ShaderParams for MyParams {}
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
+}
 
 fn setup(mut commands: Commands) {
     // When sdfs are loaded from files, hot reloading works as normal

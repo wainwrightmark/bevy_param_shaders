@@ -42,6 +42,22 @@ impl ParameterizedShader for SquareShader {
     };
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+pub struct ColorParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
+}
+
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader>::default(),

@@ -18,6 +18,22 @@ fn main() {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+pub struct ColorParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
+}
+
+#[repr(C)]
 #[derive(Debug, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyBirdShader;

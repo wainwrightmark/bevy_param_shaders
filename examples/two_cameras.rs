@@ -1,7 +1,6 @@
 use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
 
 // Should show the same circle twice with different bloom settings.
 // Currently does not work
@@ -14,6 +13,22 @@ fn main() {
         .add_plugins((DefaultPlugins, ParamShaderPlugin::<CircleShader>::default()))
         .add_systems(Startup, setup)
         .run();
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+pub struct ColorParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
 }
 
 #[repr(C)]

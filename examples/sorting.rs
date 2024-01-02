@@ -56,6 +56,22 @@ macro_rules! define_sdf_shader {
     };
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+pub struct ColorParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
+}
+
 define_sdf_shader!(
     BoxShader,
     "051301eb-61ea-4eed-b067-4682feb028a0",
