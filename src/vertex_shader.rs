@@ -40,7 +40,7 @@ struct Vertex {{
 {params_locations}
 @location({rotation_location}) rotation: vec2<f32>,
 @location({scale_location}) scale: f32,
-@location({frame_location}) frame: f32,
+@location({frame_location}) frame: vec2<f32>,
 }};
 
 struct VertexOutput {{

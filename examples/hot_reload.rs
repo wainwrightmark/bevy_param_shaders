@@ -2,6 +2,7 @@ use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_param_shaders::prelude::*;
 use bytemuck::{Pod, Zeroable};
 
+/// Hot reload doesn't actually seem to work...
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
@@ -69,7 +70,7 @@ fn setup(mut commands: Commands) {
         shape: ShaderShape::<BevyBirdShader> {
             parameters: Color::WHITE.into(),
 
-            frame: Frame::Quad(295.),
+            frame: Frame::square(295.),
             ..Default::default()
         },
         ..default()

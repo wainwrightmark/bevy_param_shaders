@@ -203,9 +203,8 @@ fn extract_shapes<SHADER: ParameterizedShader>(
             continue;
         }
 
-        let Frame::Quad(frame) = shape.frame;
 
-        let shape_vertex = ShapeVertex::new(transform, frame, shape.parameters);
+        let shape_vertex = ShapeVertex::new(transform, shape.frame, shape.parameters);
 
         extracted_shapes.vertices.push(shape_vertex);
     }
@@ -357,7 +356,7 @@ fn join_adjacent_batches(
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Zeroable)]
 struct ShapeVertex<PARAMS: ShaderParams> {
-    pub frame: f32,
+    pub frame: [f32; 2],
     pub params: PARAMS,
     pub position: [f32; 3],
     pub rotation: [f32; 2],
@@ -365,7 +364,7 @@ struct ShapeVertex<PARAMS: ShaderParams> {
 }
 
 impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
-    pub fn new(transform: &GlobalTransform, frame: f32, params: PARAMS) -> Self {
+    pub fn new(transform: &GlobalTransform, frame: Frame, params: PARAMS) -> Self {
         let position = transform.translation();
         let position = position.into();
 
@@ -379,7 +378,7 @@ impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
             params,
             rotation,
             scale,
-            frame,
+            frame: [frame.half_width, frame.half_height],
         }
     }
 

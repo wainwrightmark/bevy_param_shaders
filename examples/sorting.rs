@@ -73,7 +73,7 @@ fn setup(mut commands: Commands) {
     let heart_color = Color::RED;
 
     for i in 0..w {
-        let frame = Frame::Quad(1.);
+        let frame = Frame::square(1.);
 
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
@@ -100,7 +100,7 @@ fn setup(mut commands: Commands) {
     }
 
     for i in 0..w {
-        let frame = Frame::Quad(1.);
+        let frame = Frame::square(1.);
 
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {

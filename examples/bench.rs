@@ -83,7 +83,7 @@ fn setup(mut commands: Commands) {
             commands.spawn((
                 ShaderBundle {
                     shape: ShaderShape::<BevyBirdShader> {
-                        frame: Frame::Quad(295.0),
+                        frame: Frame::square(295.0),
                         parameters: color.into(),
                     },
                     transform: Transform::from_translation(Vec3::new(

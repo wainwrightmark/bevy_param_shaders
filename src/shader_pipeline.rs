@@ -74,13 +74,12 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
     type Key = ShaderPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-        // let fragment_shader = self.shaders.fragment_shaders.get(&key.shader).unwrap();
         // debug!("specializing for {fragment_shader:?}");
 
         // an f32 is 4 bytes
         const WORD_BYTE_LENGTH: u64 = 4;
 
-        const FRAME_WORDS: u64 = 1;
+        const FRAME_WORDS: u64 = 2;
         const POSITION_WORDS: u64 = 3;
         const ROTATION_WORDS: u64 = 2;
         const SCALE_WORDS: u64 = 1;
@@ -93,7 +92,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
         let pre_param_attributes: [VertexAttribute; 1] = [
             // Frame
             VertexAttribute {
-                format: VertexFormat::Float32,
+                format: VertexFormat::Float32x2,
                 offset: 0,
                 shader_location: param_count + 3,
             },

@@ -31,7 +31,7 @@ impl ParameterizedShader for SquareShader {
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader> {
-            frame: Frame::Quad(100.0),
+            frame: Frame{half_width: 100.0, half_height: 50.0},
             parameters: ColorParams {
                 color: Color::ORANGE_RED.into(),
             },
@@ -41,7 +41,7 @@ fn setup(mut commands: Commands) {
 
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader> {
-            frame: Frame::Quad(50.0),
+            frame: Frame{half_width: 50.0, half_height: 100.0},
             parameters: ColorParams {
                 color: Color::BLUE.into(),
             },

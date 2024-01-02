@@ -52,7 +52,7 @@ impl ShaderParams for ColorParams {}
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<CircleShader> {
-            frame: Frame::Quad(1.0),
+            frame: Frame::square(1.0),
             parameters: ColorParams {
                 color: Color::ORANGE_RED.into(),
             },

@@ -71,8 +71,7 @@ fn setup(mut commands: Commands) {
 
     let shape = ShaderShape::<BevyBirdShader> {
         parameters: Color::rgb(0.36, 0.41, 0.45).into(),
-
-        frame: Frame::Quad(295.),
+        frame: Frame::square(295.),
         ..default()
     };
 

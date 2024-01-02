@@ -117,7 +117,7 @@ fn setup(mut commands: Commands) {
                 alpha: rng.gen_range(0.5..=1.0),
             };
 
-            let frame = Frame::Quad(1.);
+            let frame = Frame::square(1.);
 
             let transform = Transform::from_translation(Vec3::new(
                 i as f32 * spacing - w as f32 * spacing / 2.,
