@@ -2,137 +2,104 @@ use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
 
-use bytemuck::{Pod, Zeroable};
-
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins,
+        .add_plugins((
+            DefaultPlugins,
             ParamShaderPlugin::<CircleShader>::default(),
-            ParamShaderPlugin::<VesicaShader>::default(),
-            PanCamPlugin))
+            ParamShaderPlugin::<BoxShader>::default(),
+            ParamShaderPlugin::<HeartShader>::default(),
+            PanCamPlugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }
 
+macro_rules! define_sdf_shader {
+    ($name:ident,$uuid:literal,$sdf:literal) => {
+        #[derive(Debug, Reflect, TypeUuid, Default)]
+        #[uuid = $uuid]
+        pub struct $name;
 
-#[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
-#[uuid = "b5a9b5d8-32b8-4d63-8e01-45ae42b96d1d"]
-pub struct VesicaShader;
+        impl ParameterizedShader for $name {
+            fn fragment_body() -> impl Into<String> {
+                SDFAlphaCall {
+                    sdf: $sdf,
+                    fill_alpha: "smud::sd_fill_alpha_fwidth(d)",
+                    color: "in.color",
+                }
+            }
 
-impl ParameterizedShader for VesicaShader {
-    fn fragment_body() -> impl Into<String> {
-        SDFAlphaCall{
-            sdf: "smud::sd_vesica(in.pos.yx, 1.0, 0.375)",
-            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
-            color: "in.color",
+            fn imports() -> impl Iterator<Item = FragmentImport> {
+                [FragmentImport {
+                    path: "smud.wgsl",
+                    import_path: "smud",
+                }]
+                .into_iter()
+            }
+
+            type Params = ColorParams;
         }
-    }
-
-    fn imports() -> impl Iterator<Item = FragmentImport> {
-        [FragmentImport {
-            path: "smud.wgsl",
-            import_path: "smud",
-        }]
-        .into_iter()
-    }
-
-    type Params = ColorParams;
+    };
 }
 
-#[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
-#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
-pub struct CircleShader;
-
-impl ParameterizedShader for CircleShader {
-    fn fragment_body() -> impl Into<String> {
-        SDFAlphaCall{
-            sdf: "smud::sd_circle(in.pos, 1.0)",
-            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
-            color: "in.color",
-        }
-    }
-
-    fn imports() -> impl Iterator<Item = FragmentImport> {
-        [FragmentImport {
-            path: "smud.wgsl",
-            import_path: "smud",
-        }]
-        .into_iter()
-    }
-
-    type Params = ColorParams;
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct ColorParams {
-    pub color: LinearRGBA,
-}
-
-impl ShaderParams for ColorParams{
-
-}
-
+define_sdf_shader!(
+    BoxShader,
+    "051301eb-61ea-4eed-b067-4682feb028a0",
+    "smud::sd_rounded_box(in.pos, vec2<f32>(0.9, 0.9), vec4<f32>(0.2))"
+);
+define_sdf_shader!(
+    CircleShader,
+    "77738d8e-8e3a-4c94-bfbc-49620a87918d",
+    "smud::sd_circle(in.pos, 0.8)"
+);
+define_sdf_shader!(
+    HeartShader,
+    "b3171ec4-2c7d-4095-bbd0-293754b33cd5",
+    "smud::sd_heart(in.pos + vec2(0.0, 0.5))"
+);
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 4.).with_scale(Vec3::ONE * 100.0),
-        shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams { color: Color::RED.with_a(0.8).into() },
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 3.).with_scale(Vec3::ONE * 150.0),
-        shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::GREEN.with_a(0.8).into()},
+    let spacing = 100.0;
+    let w = 5;
+    commands.insert_resource(ClearColor(Color::NONE));
 
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
+    for i in 0..w {
 
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 2.).with_scale(Vec3::ONE * 225.0),
-        shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::WHITE.with_a(0.8).into()},
 
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
+        let frame = Frame::Quad(1.);
 
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 1.).with_scale(Vec3::ONE * 300.0),
-        shape: ShaderShape::<VesicaShader> {
-            parameters: ColorParams {color: Color::BLUE.with_a(0.8).into()},
+        macro_rules! spawn_bundle {
+            ($name:ident, $z:literal, $color:ident) => {
+                commands.spawn((ShaderBundle {
+                    transform: Transform::from_translation(Vec3::new(
+                        i as f32 * spacing - w as f32 * spacing / 2.,
+                        0.0,
+                        ((i as f32) * 100.0) + $z,
+                    ))
+                    .with_scale(Vec3::ONE * spacing * 0.75),
+                    shape: ShaderShape::<$name> {
+                        parameters: ($color).into(),
+                        frame,
+                        ..Default::default()
+                    },
+                    ..default()
+                },))
+            };
+        }
 
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
+        let box_color = Color::BLUE;
+        let circle_color = Color::GREEN;
+        let heart_color = Color::RED;
 
-    commands.spawn(ShaderBundle {
-        transform: Transform::from_translation(Vec3::Z * 0.).with_scale(Vec3::ONE * 450.0),
-        shape: ShaderShape::<CircleShader> {
-            parameters: ColorParams {color: Color::BLACK.with_a(0.8).into()},
-
-            frame: Frame::Quad(1.),
-            ..default()
-        },
-        ..default()
-    });
+        spawn_bundle!(BoxShader, 1.0, box_color);
+        spawn_bundle!(CircleShader, 2.0, circle_color);
+        spawn_bundle!(HeartShader, 3.0, heart_color);
+    }
 
     commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }

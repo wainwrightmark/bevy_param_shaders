@@ -28,8 +28,7 @@ fn main() {
 
 macro_rules! define_sdf_shader {
     ($name:ident,$uuid:literal,$sdf:literal) => {
-        #[repr(C)]
-        #[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
+        #[derive(Debug, Reflect, TypeUuid, Default)]
         #[uuid = $uuid]
         pub struct $name;
 
@@ -58,22 +57,22 @@ macro_rules! define_sdf_shader {
 define_sdf_shader!(
     BoxShader,
     "051301eb-61ea-4eed-b067-4682feb028a0",
-    "smud::sd_rounded_box(in.pos, vec2<f32>(0.8, 0.9), vec4<f32>(0.1))"
+    "smud::sd_rounded_box(in.pos, vec2<f32>(0.8, 0.8), vec4<f32>(0.2))"
 );
 define_sdf_shader!(
     CircleShader,
     "77738d8e-8e3a-4c94-bfbc-49620a87918d",
-    "smud::sd_circle(in.pos, 1.0)"
+    "smud::sd_circle(in.pos, 0.9)"
 );
 define_sdf_shader!(
     HeartShader,
     "b3171ec4-2c7d-4095-bbd0-293754b33cd5",
-    "smud::sd_heart(in.pos)"
+    "smud::sd_heart(in.pos + vec2(0.0, 0.5))"
 );
 define_sdf_shader!(
     MoonShader,
     "e3bda7c4-b689-4ac7-af9b-78ec0a49a2a3",
-    "smud::sd_moon(in.pos, 1.0, 0.5, 0.25)"
+    "smud::sd_moon(in.pos, 0.5, 0.9, 0.9)"
 );
 define_sdf_shader!(
     PieShader,
@@ -88,7 +87,7 @@ define_sdf_shader!(
 define_sdf_shader!(
     RoundedXShader,
     "aaf2157b-08f7-4164-b29a-194421403e26",
-    "smud::sd_rounded_x(in.pos, 0.8, 0.5)"
+    "smud::sd_rounded_x(in.pos, 0.8, 0.2)"
 );
 define_sdf_shader!(
     EllipseShader,
@@ -126,7 +125,7 @@ fn setup(mut commands: Commands) {
                 i as f32 * spacing - w as f32 * spacing / 2.,
                 j as f32 * spacing - h as f32 * spacing / 2.,
                 0.,
-            )).with_scale(Vec3::ONE * 50.0);
+            )).with_rotation(Quat::from_rotation_z(rng.gen_range(0.0..std::f32::consts::TAU) )) .with_scale(Vec3::ONE * spacing * 0.5);
 
             macro_rules! spawn_bundle {
                 ($name:ident) => {
@@ -145,9 +144,9 @@ fn setup(mut commands: Commands) {
                 };
             }
 
-            let shader_index = rng.gen_range(0..8);
+            //let shader_index = rng.gen_range(0..8);
 
-            match shader_index {
+            match index % 8 {
                 0 => spawn_bundle!(BoxShader),
                 1 => spawn_bundle!(CircleShader),
                 2 => spawn_bundle!(HeartShader),
