@@ -22,6 +22,7 @@ pub struct BevyMorphShader;
 
 impl ParameterizedShader for BevyMorphShader {
     type Params = ColorParams;
+    type ParamsQuery<'a> = &'a ColorParams;
 
     const USE_TIME: bool = true;
 
@@ -50,15 +51,20 @@ impl ParameterizedShader for BevyMorphShader {
         .into_iter()
     }
 
-
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    ) -> Self::Params {
+        *query_item
+    }
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<BevyMorphShader> {
-            frame: Frame::square(295.0),
-            parameters: Color::ORANGE_RED.into(),
-        },
+        shape: ShaderShape::<BevyMorphShader>::default(),
+
+        frame: Frame::square(295.0),
+        parameters: Color::ORANGE_RED.into(),
+
         ..default()
     });
 

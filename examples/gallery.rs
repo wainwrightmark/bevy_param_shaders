@@ -50,6 +50,13 @@ macro_rules! define_sdf_shader {
             }
 
             type Params = ColorParams;
+            type ParamsQuery<'a> = &'a ColorParams;
+
+            fn get_params<'w, 'a>(
+                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+            ) -> Self::Params {
+                *query_item
+            }
         }
     };
 }
@@ -134,11 +141,9 @@ fn setup(mut commands: Commands) {
                     commands.spawn((
                         ShaderBundle {
                             transform,
-                            shape: ShaderShape::<$name> {
-                                parameters: color.into(),
-                                frame,
-                                ..Default::default()
-                            },
+                            shape: ShaderShape::<$name>::default(),
+                            parameters: color.into(),
+                            frame,
                             ..default()
                         },
                         Index(index),

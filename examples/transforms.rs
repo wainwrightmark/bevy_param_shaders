@@ -1,7 +1,6 @@
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
 
 /// This example just shows that transforms work
 
@@ -21,11 +20,14 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, TypeUuid, Default)]
+#[derive(Debug, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyBirdShader;
 
 impl ParameterizedShader for BevyBirdShader {
+    type Params = ColorParams;
+    type ParamsQuery<'a> = &'a ColorParams;
+
     fn fragment_body() -> impl Into<String> {
         SDFColorCall {
             sdf: "smud::bevy::sdf(in.pos)",
@@ -51,16 +53,12 @@ impl ParameterizedShader for BevyBirdShader {
         .into_iter()
     }
 
-    type Params = ColorParams;
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    ) -> Self::Params {
+        *query_item
+    }
 }
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
-pub struct MyParams {
-    pub color: LinearRGBA,
-}
-
-impl ShaderParams for MyParams {}
 
 fn setup(mut commands: Commands) {
     let transform = Transform {
@@ -69,29 +67,29 @@ fn setup(mut commands: Commands) {
         rotation: Quat::from_rotation_z(1.0),
     };
 
-    let shape = ShaderShape::<BevyBirdShader> {
-        parameters: Color::rgb(0.36, 0.41, 0.45).into(),
-        frame: Frame::square(295.),
-        ..default()
-    };
-
     // Bevies, all the way down
     commands
         .spawn(ShaderBundle {
-            shape: shape.clone(),
+            shape: ShaderShape::<BevyBirdShader>::default(),
+            parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+            frame: Frame::square(295.),
             ..default()
         })
         .with_children(|parent| {
             parent
                 .spawn(ShaderBundle {
                     transform,
-                    shape: shape.clone(),
+                    shape: ShaderShape::<BevyBirdShader>::default(),
+                    parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+                    frame: Frame::square(295.),
                     ..default()
                 })
                 .with_children(|parent| {
                     parent.spawn(ShaderBundle {
                         transform,
-                        shape: shape.clone(),
+                        shape: ShaderShape::<BevyBirdShader>::default(),
+                        parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+                        frame: Frame::square(295.),
                         ..default()
                     });
                 });

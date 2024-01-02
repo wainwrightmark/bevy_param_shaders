@@ -22,6 +22,9 @@ fn main() {
 pub struct BevyBirdShader;
 
 impl ParameterizedShader for BevyBirdShader {
+    type Params = ColorParams;
+    type ParamsQuery<'a> = &'a ColorParams;
+
     fn fragment_body() -> impl Into<String> {
         SDFColorCall {
             sdf: "smud::bevy::sdf(in.pos)",
@@ -47,7 +50,11 @@ impl ParameterizedShader for BevyBirdShader {
         .into_iter()
     }
 
-    type Params = ColorParams;
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    ) -> Self::Params {
+        *query_item
+    }
 }
 
 #[repr(C)]
@@ -67,12 +74,10 @@ fn setup(mut commands: Commands) {
             scale: Vec3::splat(0.4),
             ..default()
         },
-        shape: ShaderShape::<BevyBirdShader> {
-            parameters: Color::WHITE.into(),
+        shape: ShaderShape::<BevyBirdShader>::default(),
+        parameters: Color::WHITE.into(),
 
-            frame: Frame::square(295.),
-            ..Default::default()
-        },
+        frame: Frame::square(295.),
         ..default()
     });
 

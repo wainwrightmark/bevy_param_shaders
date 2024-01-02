@@ -42,7 +42,14 @@ macro_rules! define_sdf_shader {
                 .into_iter()
             }
 
+            fn get_params<'w, 'a>(
+                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+            ) -> Self::Params {
+                *query_item
+            }
+
             type Params = ColorParams;
+            type ParamsQuery<'a> = &'a ColorParams;
         }
     };
 }
@@ -84,11 +91,10 @@ fn setup(mut commands: Commands) {
                         ((i as f32) * 100.0) + $z,
                     ))
                     .with_scale(Vec3::ONE * spacing * 0.75),
-                    shape: ShaderShape::<$name> {
-                        parameters: ($color).into(),
-                        frame,
-                        ..Default::default()
-                    },
+                    shape: ShaderShape::<$name>::default(),
+                    parameters: ($color).into(),
+                    frame,
+
                     ..default()
                 },))
             };
@@ -111,11 +117,9 @@ fn setup(mut commands: Commands) {
                         (i as f32) + ($z * 100.0),
                     ))
                     .with_scale(Vec3::ONE * spacing * 0.75),
-                    shape: ShaderShape::<$name> {
-                        parameters: ($color).into(),
-                        frame,
-                        ..Default::default()
-                    },
+                    shape: ShaderShape::<$name>::default(),
+                    parameters: ($color).into(),
+                    frame,
                     ..default()
                 },))
             };

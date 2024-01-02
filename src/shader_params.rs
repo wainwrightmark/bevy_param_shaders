@@ -1,4 +1,4 @@
-use bevy::reflect::{Reflect, Struct};
+use bevy::{reflect::{Reflect, Struct}, ecs::component::Component};
 use bytemuck::{Pod, Zeroable};
 pub trait ShaderParams:
     Pod + Zeroable + Copy + std::fmt::Debug + Default + Reflect + Struct + PartialEq
@@ -56,7 +56,7 @@ impl From<bevy::prelude::Color> for ColorParams {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable, Component)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }

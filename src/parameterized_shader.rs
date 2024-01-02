@@ -1,8 +1,23 @@
-use crate::shader_params::ShaderParams;
-use bevy::reflect::TypeUuid;
+use std::fmt::Debug;
 
-pub trait ParameterizedShader: Sync + Send + TypeUuid   + 'static {
+use crate::shader_params::ShaderParams;
+use bevy::{
+    ecs::{
+        bundle::Bundle,
+        query::{ReadOnlyWorldQuery, WorldQuery},
+    },
+    reflect::TypeUuid,
+};
+
+pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
     type Params: ShaderParams;
+    type ParamsQuery<'a>: ReadOnlyWorldQuery;
+    //TODO additional type param for required resources
+
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w>,
+    ) -> Self::Params;
+
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field
     /// It should return `vec4<f32>` representing the color of the pixel
@@ -12,6 +27,15 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid   + 'static {
     fn imports() -> impl Iterator<Item = FragmentImport>;
 
     const USE_TIME: bool = false;
+}
+
+pub trait BundlableParameterizedShader {
+    /// A bundle of the additional parameters needed to use this shader
+    type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
+}
+
+impl<'a, P : Bundle + Default + Clone + Debug + PartialEq, T : ParameterizedShader<ParamsQuery<'a> = &'a P, Params = P>>  BundlableParameterizedShader for T{
+    type ParamsBundle = P;
 }
 
 pub struct FragmentImport {

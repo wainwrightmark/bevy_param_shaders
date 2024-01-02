@@ -19,6 +19,7 @@ pub struct SquareShader;
 
 impl ParameterizedShader for SquareShader {
     type Params = ColorParams;
+    type ParamsQuery<'a> = &'a ColorParams;
     fn fragment_body() -> impl Into<String> {
         "return in.color;"
     }
@@ -26,26 +27,29 @@ impl ParameterizedShader for SquareShader {
     fn imports() -> impl Iterator<Item = FragmentImport> {
         [].into_iter()
     }
+
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    ) -> Self::Params {
+        *query_item
+    }
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<SquareShader> {
-            frame: Frame{half_width: 100.0, half_height: 50.0},
-            parameters: ColorParams {
-                color: Color::ORANGE_RED.into(),
-            },
+        shape: ShaderShape::<SquareShader>::default(),
+        parameters: Color::ORANGE_RED.into(),
+        frame: Frame {
+            half_width: 100.0,
+            half_height: 50.0,
         },
         ..default()
     });
 
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<SquareShader> {
-            frame: Frame{half_width: 50.0, half_height: 100.0},
-            parameters: ColorParams {
-                color: Color::BLUE.into(),
-            },
-        },
+        shape: ShaderShape::<SquareShader>::default(),
+        frame: Frame{half_width: 50.0, half_height: 100.0},
+        parameters: Color::BLUE.into(),
         ..default()
     });
 

@@ -95,6 +95,9 @@ impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
             app.add_plugins(ParameterShadersPlugin);
         }
 
+        //todo in debug mode add a system to check that all shader plugins are registered
+        //todo in debug mode add a system to check that all shaders have the right parameters
+
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
                 .add_render_command::<Transparent2d, DrawShaderShape<SHADER>>()
@@ -192,18 +195,20 @@ impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
     }
 }
 
-fn extract_shapes<SHADER: ParameterizedShader>(
+fn extract_shapes<'w,'s, 'a, SHADER: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
-    shape_query: Extract<Query<(&ViewVisibility, &ShaderShape<SHADER>, &GlobalTransform)>>,
+    shape_query: Extract<Query<'w,'s, (&ViewVisibility, SHADER::ParamsQuery<'a>, &Frame, &GlobalTransform), With<ShaderShape<SHADER>>>>,
 ) {
     extracted_shapes.vertices.clear();
 
-    for (view_visibility, shape, transform) in shape_query.iter() {
+    for (view_visibility, params_item, frame, transform) in shape_query.iter() {
         if !view_visibility.get() {
             continue;
         }
 
-        let shape_vertex = ShapeVertex::new(transform, shape.frame, shape.parameters);
+        let params = SHADER::get_params(params_item);
+
+        let shape_vertex = ShapeVertex::new(transform, frame, params);
 
         extracted_shapes.vertices.push(shape_vertex);
     }
@@ -371,7 +376,7 @@ struct ShapeVertex<PARAMS: ShaderParams> {
 }
 
 impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
-    pub fn new(transform: &GlobalTransform, frame: Frame, params: PARAMS) -> Self {
+    pub fn new(transform: &GlobalTransform, frame: &Frame, params: PARAMS) -> Self {
         let position = transform.translation();
         let position = position.into();
 
