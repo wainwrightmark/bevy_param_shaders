@@ -50,6 +50,8 @@ macro_rules! define_sdf_shader {
 
             type Params = ColorParams;
             type ParamsQuery<'a> = &'a ColorParams;
+
+            const FRAME: Frame = Frame::square(1.);
         }
     };
 }
@@ -80,7 +82,7 @@ fn setup(mut commands: Commands) {
     let heart_color = Color::RED;
 
     for i in 0..w {
-        let frame = Frame::square(1.);
+
 
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
@@ -93,7 +95,6 @@ fn setup(mut commands: Commands) {
                     .with_scale(Vec3::ONE * spacing * 0.75),
                     shape: ShaderShape::<$name>::default(),
                     parameters: ($color).into(),
-                    frame,
 
                     ..default()
                 },))
@@ -106,7 +107,6 @@ fn setup(mut commands: Commands) {
     }
 
     for i in 0..w {
-        let frame = Frame::square(1.);
 
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
@@ -119,7 +119,6 @@ fn setup(mut commands: Commands) {
                     .with_scale(Vec3::ONE * spacing * 0.75),
                     shape: ShaderShape::<$name>::default(),
                     parameters: ($color).into(),
-                    frame,
                     ..default()
                 },))
             };

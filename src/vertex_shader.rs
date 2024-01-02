@@ -1,6 +1,6 @@
 use bevy::{reflect::Struct, render::render_resource::Shader};
 
-use crate::parameterized_shader::*;
+use crate::{parameterized_shader::*, Frame};
 
 /// Creates a vertex shader with the correct number of arguments
 pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
@@ -10,7 +10,7 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
 
     let param_count = proxy.field_len();
 
-    let vertex_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(4);
+    let vertex_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(3);
     let fragment_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(1);
 
     let mut params_assignments = "".to_string();
@@ -20,6 +20,7 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
     }
 
     let params_id = SHADER::TYPE_UUID;
+    let Frame{half_width, half_height, } = SHADER::FRAME;
 
     let source = format!(
         r##"
@@ -34,15 +35,13 @@ var<uniform> view: View;
 
 // as specified in `specialize()`
 struct Vertex {{
-@location(0) frame: vec2<f32>,
-@location(1) rotation: vec2<f32>,
-@location(2) position: vec3<f32>,
-@location(3) scale: f32,
+@location(0) rotation: vec2<f32>,
+@location(1) position: vec3<f32>,
+@location(2) scale: f32,
 {vertex_params_locations}
-
-
-
 }};
+
+
 
 struct VertexOutput {{
 @builtin(position) clip_position: vec4<f32>,
@@ -56,16 +55,18 @@ fn vertex(
     @builtin(vertex_index) i: u32
 ) -> VertexOutput {{
 var out: VertexOutput;
+let frame = vec2<f32>({half_width}f,{half_height}f);
+
 let x = select(-1., 1., i % 2u == 0u);
 let y = select(-1., 1., (i / 2u) % 2u == 0u);
 let c = vertex.rotation.x;
 let s = vertex.rotation.y;
 let rotated = vec2<f32>(x * c - y * s, x * s + y * c);
-let pos = vertex.position + vec3<f32>(rotated * vertex.scale * vertex.frame, vertex.position.z);
+let pos = vertex.position + vec3<f32>(rotated * vertex.scale * frame, vertex.position.z);
 // Project the world position of the mesh into screen position
 out.clip_position = view.view_proj * vec4<f32>(pos, 1.);
 {params_assignments}
-out.pos = vec2<f32>(x, y) * vertex.frame;
+out.pos = vec2<f32>(x, y) * frame;
 return out;
 }}
 "##

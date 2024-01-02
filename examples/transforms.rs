@@ -58,6 +58,8 @@ impl ParameterizedShader for BevyBirdShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame{half_width:295.0, half_height:295.0};
 }
 
 fn setup(mut commands: Commands) {
@@ -72,7 +74,7 @@ fn setup(mut commands: Commands) {
         .spawn(ShaderBundle {
             shape: ShaderShape::<BevyBirdShader>::default(),
             parameters: Color::rgb(0.36, 0.41, 0.45).into(),
-            frame: Frame::square(295.),
+
             ..default()
         })
         .with_children(|parent| {
@@ -81,7 +83,6 @@ fn setup(mut commands: Commands) {
                     transform,
                     shape: ShaderShape::<BevyBirdShader>::default(),
                     parameters: Color::rgb(0.36, 0.41, 0.45).into(),
-                    frame: Frame::square(295.),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -89,7 +90,7 @@ fn setup(mut commands: Commands) {
                         transform,
                         shape: ShaderShape::<BevyBirdShader>::default(),
                         parameters: Color::rgb(0.36, 0.41, 0.45).into(),
-                        frame: Frame::square(295.),
+
                         ..default()
                     });
                 });

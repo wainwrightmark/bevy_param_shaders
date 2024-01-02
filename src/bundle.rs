@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{parameterized_shader::*, ShaderShape, Frame};
+use crate::{parameterized_shader::*, ShaderShape};
 
 #[derive(Bundle, Default, Clone, Debug, PartialEq)]
 pub struct ShaderBundle<SHADER: ParameterizedShader + BundlableParameterizedShader> {
@@ -8,8 +8,6 @@ pub struct ShaderBundle<SHADER: ParameterizedShader + BundlableParameterizedShad
     pub shape: ShaderShape<SHADER>,
 
     pub parameters: <SHADER as BundlableParameterizedShader>::ParamsBundle,
-
-    pub frame: Frame,
 
     /// A transform, set this to set the position, orientation and scale of the shape
     ///

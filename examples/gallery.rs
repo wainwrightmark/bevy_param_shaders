@@ -57,6 +57,8 @@ macro_rules! define_sdf_shader {
             ) -> Self::Params {
                 *query_item
             }
+
+            const FRAME: Frame = Frame::square(1.);
         }
     };
 }
@@ -124,8 +126,6 @@ fn setup(mut commands: Commands) {
                 alpha: rng.gen_range(0.5..=1.0),
             };
 
-            let frame = Frame::square(1.);
-
             let transform = Transform::from_translation(Vec3::new(
                 i as f32 * spacing - w as f32 * spacing / 2.,
                 j as f32 * spacing - h as f32 * spacing / 2.,
@@ -143,7 +143,6 @@ fn setup(mut commands: Commands) {
                             transform,
                             shape: ShaderShape::<$name>::default(),
                             parameters: color.into(),
-                            frame,
                             ..default()
                         },
                         Index(index),

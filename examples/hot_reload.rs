@@ -55,6 +55,8 @@ impl ParameterizedShader for BevyBirdShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame::square(295.0);
 }
 
 #[repr(C)]
@@ -77,7 +79,6 @@ fn setup(mut commands: Commands) {
         shape: ShaderShape::<BevyBirdShader>::default(),
         parameters: Color::WHITE.into(),
 
-        frame: Frame::square(295.),
         ..default()
     });
 

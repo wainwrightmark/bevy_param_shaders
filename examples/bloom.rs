@@ -43,12 +43,14 @@ impl ParameterizedShader for CircleShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame::square(1.0);
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<CircleShader>::default(),
-        frame: Frame::default(),
+
         parameters: ColorParams {
             color: Color::ORANGE_RED.into(),
         },

@@ -56,13 +56,13 @@ impl ParameterizedShader for BevyMorphShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame::square(295.0);
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<BevyMorphShader>::default(),
-
-        frame: Frame::square(295.0),
         parameters: Color::ORANGE_RED.into(),
 
         ..default()

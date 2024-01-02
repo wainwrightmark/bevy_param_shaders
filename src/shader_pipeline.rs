@@ -99,43 +99,35 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
         // an f32 is 4 bytes
         const WORD_BYTE_LENGTH: u64 = 4;
 
-        const FRAME_WORDS: u64 = 2;
         const ROTATION_WORDS: u64 = 2;
         const POSITION_WORDS: u64 = 3;
         const SCALE_WORDS: u64 = 1;
+
+        const CONSTANT_PARAMS: usize = 3;
 
         let proxy = <SHADER::Params as Default>::default();
         let param_count = proxy.field_len() as u32;
 
         // (GOTCHA! attributes are sorted alphabetically, and offsets need to reflect this)
 
-        let pre_param_attributes: [VertexAttribute; 4] = [
-            // Frame
+        let pre_param_attributes: [VertexAttribute; CONSTANT_PARAMS] = [
+            // Rotation
             VertexAttribute {
                 format: VertexFormat::Float32x2,
                 offset: 0,
                 shader_location: 0,
             },
-
-             // Rotation
-             VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: ((FRAME_WORDS ) * WORD_BYTE_LENGTH),
-                shader_location: 1,
-            },
-
             // Position
             VertexAttribute {
                 format: VertexFormat::Float32x3,
-                offset: ((FRAME_WORDS + ROTATION_WORDS) * WORD_BYTE_LENGTH),
-                shader_location: 2,
+                offset: ROTATION_WORDS * WORD_BYTE_LENGTH,
+                shader_location: 1,
             },
-
             // Scale
             VertexAttribute {
                 format: VertexFormat::Float32,
-                offset: ((FRAME_WORDS+ ROTATION_WORDS + POSITION_WORDS ) * WORD_BYTE_LENGTH),
-                shader_location: 3,
+                offset: (ROTATION_WORDS + POSITION_WORDS) * WORD_BYTE_LENGTH,
+                shader_location: 2,
             },
         ];
 
@@ -146,9 +138,8 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
 
         vertex_attributes.extend_from_slice(&pre_param_attributes);
 
-        let mut offset =
-            (FRAME_WORDS + POSITION_WORDS + ROTATION_WORDS + SCALE_WORDS) * WORD_BYTE_LENGTH;
-        let mut shader_location: u32 = 4;
+        let mut offset = (POSITION_WORDS + ROTATION_WORDS + SCALE_WORDS) * WORD_BYTE_LENGTH;
+        let mut shader_location: u32 = CONSTANT_PARAMS as u32;
 
         for field in proxy.iter_fields() {
             let Some(format) = crate::helpers::get_vertex_format(field.type_id()) else {
@@ -169,7 +160,6 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
             offset += format.size();
             shader_location += 1;
         }
-
 
         RenderPipelineDescriptor {
             vertex: VertexState {

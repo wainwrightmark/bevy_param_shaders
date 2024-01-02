@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
@@ -33,23 +35,25 @@ impl ParameterizedShader for SquareShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame {
+        half_width: 100.0,
+        half_height: 50.0,
+    };
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader>::default(),
         parameters: Color::ORANGE_RED.into(),
-        frame: Frame {
-            half_width: 100.0,
-            half_height: 50.0,
-        },
+
         ..default()
     });
 
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader>::default(),
-        frame: Frame{half_width: 50.0, half_height: 100.0},
-        parameters: Color::BLUE.into(),
+        parameters: Color::BLUE.with_a(0.8) .into(),
+        transform: Transform::from_rotation(Quat::from_rotation_z(consts::FRAC_PI_4)),
         ..default()
     });
 

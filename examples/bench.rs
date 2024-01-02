@@ -63,6 +63,8 @@ impl ParameterizedShader for BevyBirdShader {
     ) -> Self::Params {
         *query_item
     }
+
+    const FRAME: Frame = Frame{half_width:295.0, half_height:295.0};
 }
 
 #[derive(Component)]
@@ -90,8 +92,6 @@ fn setup(mut commands: Commands) {
             commands.spawn((
                 ShaderBundle {
                     shape: ShaderShape::<BevyBirdShader>::default(),
-
-                    frame: Frame::square(295.0),
                     parameters: color.into(),
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,

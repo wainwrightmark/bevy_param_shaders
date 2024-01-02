@@ -16,9 +16,7 @@ impl<SHADER: ParameterizedShader> std::fmt::Debug for ShaderShape<SHADER> {
     }
 }
 
-impl<SHADER: ParameterizedShader> Eq for ShaderShape<SHADER> {
-
-}
+impl<SHADER: ParameterizedShader> Eq for ShaderShape<SHADER> {}
 
 impl<SHADER: ParameterizedShader> PartialEq for ShaderShape<SHADER> {
     fn eq(&self, other: &Self) -> bool {
@@ -45,7 +43,7 @@ impl<SHADER: ParameterizedShader> Default for ShaderShape<SHADER> {
 }
 
 /// Bounds for describing how far the fragment shader of a shape will reach, should be bigger than the shape unless you want to clip it
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Component)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Frame {
     pub half_width: f32,
     pub half_height: f32, // todo: it probably makes sense for this to be the full width instead...

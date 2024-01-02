@@ -195,20 +195,27 @@ impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
     }
 }
 
-fn extract_shapes<'w,'s, 'a, SHADER: ParameterizedShader>(
+fn extract_shapes<'w, 's, 'a, SHADER: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
-    shape_query: Extract<Query<'w,'s, (&ViewVisibility, SHADER::ParamsQuery<'a>, &Frame, &GlobalTransform), With<ShaderShape<SHADER>>>>,
+    shape_query: Extract<
+        Query<
+            'w,
+            's,
+            (&ViewVisibility, SHADER::ParamsQuery<'a>, &GlobalTransform),
+            With<ShaderShape<SHADER>>,
+        >,
+    >,
 ) {
     extracted_shapes.vertices.clear();
 
-    for (view_visibility, params_item, frame, transform) in shape_query.iter() {
+    for (view_visibility, params_item, transform) in shape_query.iter() {
         if !view_visibility.get() {
             continue;
         }
 
         let params = SHADER::get_params(params_item);
 
-        let shape_vertex = ShapeVertex::new(transform, frame, params);
+        let shape_vertex = ShapeVertex::new(transform, params);
 
         extracted_shapes.vertices.push(shape_vertex);
     }
@@ -368,7 +375,6 @@ fn join_adjacent_batches(
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Zeroable)]
 struct ShapeVertex<PARAMS: ShaderParams> {
-    pub frame: [f32; 2],
     pub rotation: [f32; 2],
     pub position: [f32; 3],
     pub scale: f32,
@@ -376,7 +382,7 @@ struct ShapeVertex<PARAMS: ShaderParams> {
 }
 
 impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
-    pub fn new(transform: &GlobalTransform, frame: &Frame, params: PARAMS) -> Self {
+    pub fn new(transform: &GlobalTransform, params: PARAMS) -> Self {
         let position = transform.translation();
         let position = position.into();
 
@@ -390,7 +396,6 @@ impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
             params,
             rotation,
             scale,
-            frame: [frame.half_width, frame.half_height],
         }
     }
 

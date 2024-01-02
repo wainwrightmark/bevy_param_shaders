@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::shader_params::ShaderParams;
+use crate::{shader_params::ShaderParams, Frame};
 use bevy::{
     ecs::{
         bundle::Bundle,
@@ -27,6 +27,9 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
     fn imports() -> impl Iterator<Item = FragmentImport>;
 
     const USE_TIME: bool = false;
+
+    /// The frame to use for this shader
+    const FRAME: Frame;
 }
 
 pub trait BundlableParameterizedShader {
