@@ -9,7 +9,7 @@ use bevy::{
         query::ROQueryItem,
         system::{
             lifetimeless::{Read, SRes},
-            SystemParamItem,
+            SpawnBatch, SystemParamItem,
         },
     },
     math::Vec3Swizzles,
@@ -34,7 +34,7 @@ use bevy::{
         view::{ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms},
         Extract, Render, RenderApp, RenderSet,
     },
-    utils::{hashbrown::HashMap, FloatOrd},
+    utils::{hashbrown::HashMap, nonmax::NonMaxU32, FloatOrd},
 };
 use bytemuck::{Pod, Zeroable};
 use pipeline_key::PipelineKey;
@@ -78,7 +78,7 @@ impl Plugin for ParameterShadersPlugin {
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(
                 Render,
-                prepare_all_shapes.in_set(RenderSet::PrepareBindGroups),
+                join_adjacent_batches.in_set(RenderSet::PrepareBindGroups),
             );
         };
     }
@@ -172,8 +172,10 @@ impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBa
         if let Some(buffer) = shape_meta.vertices.buffer() {
             pass.set_vertex_buffer(0, buffer.slice(..));
             pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
+                                                  //info!("Render {:?}", batch);
             RenderCommandResult::Success
         } else {
+            warn!("Render Fail {:?}", batch);
             RenderCommandResult::Failure
         }
     }
@@ -369,7 +371,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHA
 
 #[derive(Component, Clone, Debug)]
 struct ExtractedShape<PARAMS: ShaderParams> {
-    entity: Entity,
+    //entity: Entity,
     params: PARAMS,
     frame: f32,
     transform: GlobalTransform,
@@ -409,7 +411,7 @@ fn extract_shapes<SHADER: ParameterizedShader>(
         let Frame::Quad(frame) = shape.frame;
 
         extracted_shapes.shapes.push(ExtractedShape {
-            entity,
+            //entity,
             params: shape.parameters,
             transform: *transform,
             frame,
@@ -418,19 +420,14 @@ fn extract_shapes<SHADER: ParameterizedShader>(
 }
 
 fn queue_shapes<SHADER: ParameterizedShader>(
-    // mut view_entities: Local<FixedBitSet>,
+    mut commands: Commands,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     smud_pipeline: Res<SmudPipeline<SHADER>>,
     mut pipelines: ResMut<SpecializedRenderPipelines<SmudPipeline<SHADER>>>,
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
-    mut views: Query<(
-        &mut RenderPhase<Transparent2d>,
-        // &VisibleEntities,
-        &ExtractedView,
-    )>,
-    // ?
+    mut views: Query<(&mut RenderPhase<Transparent2d>, &ExtractedView)>,
 ) {
     let draw_function = draw_functions
         .read()
@@ -449,31 +446,43 @@ fn queue_shapes<SHADER: ParameterizedShader>(
         let mesh_key = PipelineKey::from_msaa_samples(msaa.samples())
             | PipelineKey::from_primitive_topology(PrimitiveTopology::TriangleStrip);
 
-        // view_entities.clear();
-        // view_entities.extend(visible_entities.entities.iter().map(|e| e.index() as usize));
+        let specialize_key = SmudPipelineKey {
+            mesh: mesh_key,
+            hdr: view.hdr,
+        };
+        let pipeline = pipelines.specialize(&pipeline_cache, &smud_pipeline, specialize_key);
 
-        transparent_phase
-            .items
-            .reserve(extracted_shapes.shapes.len());
+        // transparent_phase
+        //     .items
+        //     .reserve(extracted_shapes.shapes.len());
 
-        for extracted_shape in extracted_shapes.shapes.iter() {
-            let specialize_key = SmudPipelineKey {
-                mesh: mesh_key,
-                hdr: view.hdr,
-            };
-            let pipeline = pipelines.specialize(&pipeline_cache, &smud_pipeline, specialize_key);
+        let mut index = 0;
+        while let Some(first_shape) = extracted_shapes.shapes.get(index) {
+            let start = index;
+            index += 1;
+            let z = first_shape.transform.translation().z;
+            //these will always be batched with shapes with the same z index
+            while extracted_shapes
+                .shapes
+                .get(index)
+                .is_some_and(|n| n.transform.translation().z == z)
+            {
+                index += 1;
+            }
 
-            // These items will be sorted by depth with other phase items
-            let sort_key = FloatOrd(extracted_shape.transform.translation().z);
+            let sort_key = FloatOrd(z);
+            let range = (start as u32)..(index as u32);
+            let entity = commands.spawn(ShapeBatch { range }).id();
+
+            //info!("Queue func {draw_function:?} - {entity:?} {:?}", (start as u32)..(index as u32));
 
             // Add the item to the render phase
             transparent_phase.add(Transparent2d {
                 draw_function,
                 pipeline,
-                entity: extracted_shape.entity,
+                entity,
                 sort_key,
-                // batch_range and dynamic_offset will be calculated in prepare_shapes
-                batch_range: 0..0,
+                batch_range: 0..1,
                 dynamic_offset: None,
             });
         }
@@ -516,63 +525,60 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
             )
         }));
 
+    //info!("Prepared {} shapes", shape_meta.vertices.len());
+
     shape_meta
         .vertices
         .write_buffer(&render_device, &render_queue);
 }
 
-fn prepare_all_shapes(
-    mut commands: Commands,
-    mut previous_len: Local<usize>,
+fn join_adjacent_batches(
     mut phases: Query<&mut RenderPhase<Transparent2d>>,
+    mut batches: Query<&mut ShapeBatch>,
 ) {
-    let mut batches: Vec<(Entity, ShapeBatch)> = Vec::with_capacity(*previous_len);
-    let mut indices: HashMap<DrawFunctionId, u32> = Default::default(); //todo we don't actually need a hash set here
-
     for mut transparent_phase in &mut phases {
-        let mut batch_item_index: Option<usize> = None;
-        let mut current_draw_function: Option<DrawFunctionId> = None;
-        let mut current_index: &mut u32 = &mut 0;
+        let mut index = 0;
 
-        // Iterate through the phase items and detect when successive shapes that can be batched.
-        // Spawn an entity with a `ShapeBatch` component for each possible batch.
-        // Compatible items share the same entity.
-        for item_index in 0..transparent_phase.items.len() {
-            let item = &transparent_phase.items[item_index];
+        while let Some(item) = transparent_phase.items.get(index) {
+            let item_index = index;
+            index += 1;
 
-            if Some(item.draw_function) != current_draw_function {
-                current_draw_function = Some(item.draw_function);
-                current_index = indices.entry(item.draw_function).or_insert(0);
-                batch_item_index = None;
+            let entity = item.entity;
+            let Ok(batch) = batches.get(entity) else {
+                continue;
+            };
+            let mut range = batch.range.clone();
+            let mut extra_count = 0;
+
+            'concat: while let Some(next) = transparent_phase.items.get(index) {
+                if item.draw_function != next.draw_function {
+                    break 'concat;
+                }
+                let next_entity = next.entity;
+                let Ok(next_batch) = batches.get(next_entity) else {
+                    break 'concat;
+                };
+                range.end = next_batch.range.end;
+                index += 1;
+                extra_count += 1;
             }
 
-            let batch_item_index = match batch_item_index {
-                Some(i) => i,
-                None => {
-                    batch_item_index = Some(item_index);
+            if extra_count > 0 {
+                //we are doing a concat
 
-                    batches.push((
-                        item.entity,
-                        ShapeBatch {
-                            range: *current_index..*current_index,
-                        },
-                    ));
+                let Some(item) = transparent_phase.items.get_mut(item_index) else {
+                    continue;
+                };
 
-                    item_index
-                }
-            };
+                let Ok(mut batch) = batches.get_mut(entity) else {
+                    continue;
+                };
 
-            transparent_phase.items[batch_item_index]
-                .batch_range_mut()
-                .end += 1;
-
-            batches.last_mut().unwrap().1.range.end += 1;
-            *current_index += 1;
+                item.batch_range.end += extra_count;
+                batch.range = range;
+            }
         }
     }
-
-    *previous_len = batches.len();
-    commands.insert_or_spawn_batch(batches);
 }
 
 #[repr(C)]

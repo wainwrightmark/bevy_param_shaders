@@ -68,9 +68,11 @@ fn setup(mut commands: Commands) {
     let w = 5;
     commands.insert_resource(ClearColor(Color::NONE));
 
+    let box_color = Color::BLUE;
+    let circle_color = Color::GREEN;
+    let heart_color = Color::RED;
+
     for i in 0..w {
-
-
         let frame = Frame::Quad(1.);
 
         macro_rules! spawn_bundle {
@@ -78,8 +80,35 @@ fn setup(mut commands: Commands) {
                 commands.spawn((ShaderBundle {
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,
-                        0.0,
+                        100.0,
                         ((i as f32) * 100.0) + $z,
+                    ))
+                    .with_scale(Vec3::ONE * spacing * 0.75),
+                    shape: ShaderShape::<$name> {
+                        parameters: ($color).into(),
+                        frame,
+                        ..Default::default()
+                    },
+                    ..default()
+                },))
+            };
+        }
+
+        spawn_bundle!(BoxShader, 1.0, box_color);
+        spawn_bundle!(CircleShader, 2.0, circle_color);
+        spawn_bundle!(HeartShader, 3.0, heart_color);
+    }
+
+    for i in 0..w {
+        let frame = Frame::Quad(1.);
+
+        macro_rules! spawn_bundle {
+            ($name:ident, $z:literal, $color:ident) => {
+                commands.spawn((ShaderBundle {
+                    transform: Transform::from_translation(Vec3::new(
+                        i as f32 * spacing - w as f32 * spacing / 2.,
+                        -100.0,
+                        (i as f32) + ($z * 100.0),
                     ))
                     .with_scale(Vec3::ONE * spacing * 0.75),
                     shape: ShaderShape::<$name> {
