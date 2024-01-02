@@ -106,8 +106,6 @@ fn setup(mut commands: Commands) {
     info!("Adding {} shapes", w * h);
     commands.insert_resource(ClearColor(Color::NONE));
 
-
-
     for i in 0..w {
         for j in 0..h {
             let index = i + j * w;
@@ -125,7 +123,11 @@ fn setup(mut commands: Commands) {
                 i as f32 * spacing - w as f32 * spacing / 2.,
                 j as f32 * spacing - h as f32 * spacing / 2.,
                 0.,
-            )).with_rotation(Quat::from_rotation_z(rng.gen_range(0.0..std::f32::consts::TAU) )) .with_scale(Vec3::ONE * spacing * 0.5);
+            ))
+            .with_rotation(Quat::from_rotation_z(
+                rng.gen_range(0.0..std::f32::consts::TAU),
+            ))
+            .with_scale(Vec3::ONE * spacing * 0.5);
 
             macro_rules! spawn_bundle {
                 ($name:ident) => {
@@ -156,8 +158,6 @@ fn setup(mut commands: Commands) {
                 6 => spawn_bundle!(RoundedXShader),
                 _ => spawn_bundle!(EllipseShader),
             };
-
-
         }
     }
 

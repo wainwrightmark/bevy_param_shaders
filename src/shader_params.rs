@@ -1,11 +1,9 @@
-use bytemuck::{Pod, Zeroable};
 use bevy::reflect::{Reflect, Struct};
+use bytemuck::{Pod, Zeroable};
 pub trait ShaderParams:
     Pod + Zeroable + Copy + std::fmt::Debug + Default + Reflect + Struct
 {
 }
-
-
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, Pod, Zeroable)]
@@ -51,7 +49,9 @@ impl From<bevy::prelude::Color> for LinearRGB {
 
 impl From<bevy::prelude::Color> for ColorParams {
     fn from(value: bevy::prelude::Color) -> Self {
-        Self { color: value.into() }
+        Self {
+            color: value.into(),
+        }
     }
 }
 

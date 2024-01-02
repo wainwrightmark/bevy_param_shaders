@@ -28,8 +28,6 @@ impl ParameterizedShader for SquareShader {
     }
 }
 
-
-
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<SquareShader> {

@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_param_shaders::prelude::*;
 use bytemuck::{Pod, Zeroable};
@@ -9,7 +7,10 @@ fn main() {
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<BevyBirdShader>::default()))
+        .add_plugins((
+            DefaultPlugins,
+            ParamShaderPlugin::<BevyBirdShader>::default(),
+        ))
         .add_systems(Startup, setup)
         .run();
 }
@@ -21,9 +22,9 @@ pub struct BevyBirdShader;
 
 impl ParameterizedShader for BevyBirdShader {
     fn fragment_body() -> impl Into<String> {
-        SDFColorCall{
-            sdf:"smud::bevy::sdf(in.pos)",
-            fill_color: "smud::default_fill::fill(d, in.color)"
+        SDFColorCall {
+            sdf: "smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)",
         }
     }
 
@@ -37,10 +38,10 @@ impl ParameterizedShader for BevyBirdShader {
                 path: "bevy.wgsl",
                 import_path: "smud::bevy",
             },
-            FragmentImport{
+            FragmentImport {
                 path: "cubic_falloff.wgsl",
-                import_path: "smud::default_fill"
-            }
+                import_path: "smud::default_fill",
+            },
         ]
         .into_iter()
     }

@@ -1,9 +1,6 @@
-use std::fmt::Display;
-
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
 
 fn main() {
     App::new()
@@ -11,7 +8,11 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<BevyBirdShader>::default(), PanCamPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            ParamShaderPlugin::<BevyBirdShader>::default(),
+            PanCamPlugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }
@@ -23,9 +24,9 @@ pub struct BevyBirdShader;
 
 impl ParameterizedShader for BevyBirdShader {
     fn fragment_body() -> impl Into<String> {
-        SDFColorCall{
-            sdf:"smud::bevy::sdf(in.pos)",
-            fill_color: "smud::default_fill::fill(d, in.color)"
+        SDFColorCall {
+            sdf: "smud::bevy::sdf(in.pos)",
+            fill_color: "smud::default_fill::fill(d, in.color)",
         }
     }
 
@@ -39,10 +40,10 @@ impl ParameterizedShader for BevyBirdShader {
                 path: "bevy.wgsl",
                 import_path: "smud::bevy",
             },
-            FragmentImport{
+            FragmentImport {
                 path: "cubic_falloff.wgsl",
-                import_path: "smud::default_fill"
-            }
+                import_path: "smud::default_fill",
+            },
         ]
         .into_iter()
     }
@@ -50,10 +51,7 @@ impl ParameterizedShader for BevyBirdShader {
     type Params = ColorParams;
 }
 
-
-
 fn setup(mut commands: Commands) {
-
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<BevyBirdShader> {
             parameters: Color::rgb(0.36, 0.41, 0.45).into(),

@@ -15,23 +15,17 @@ use bevy::{
     math::Vec3Swizzles,
     prelude::*,
     render::{
-        globals::{GlobalsBuffer, GlobalsUniform},
+        globals::GlobalsBuffer,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
             RenderPhase, SetItemPipeline, TrackedRenderPass,
         },
         render_resource::{
-            BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutDescriptor,
-            BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, BufferUsages,
-            BufferVec, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
-            MultisampleState, PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, ShaderStages, ShaderType, SpecializedRenderPipeline,
-            SpecializedRenderPipelines, TextureFormat, VertexAttribute, VertexBufferLayout,
-            VertexFormat, VertexState, VertexStepMode,
+            BindGroup, BindGroupEntries, BufferUsages, BufferVec, PipelineCache, PrimitiveTopology,
+            SpecializedRenderPipelines,
         },
         renderer::{RenderDevice, RenderQueue},
-        texture::BevyDefault,
-        view::{ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms},
+        view::{ExtractedView, ViewUniformOffset, ViewUniforms},
         Extract, Render, RenderApp, RenderSet,
     },
     utils::FloatOrd,
@@ -40,11 +34,12 @@ use bytemuck::{Pod, Zeroable};
 use pipeline_key::PipelineKey;
 use shader_loading::*;
 
-pub use bundle::ShaderBundle;
-pub use components::*;
-
 use parameterized_shader::*;
 use shader_params::ShaderParams;
+use shader_pipeline::*;
+
+pub use bundle::ShaderBundle;
+pub use components::*;
 
 mod bundle;
 mod components;
@@ -54,7 +49,7 @@ pub mod parameterized_shader;
 mod pipeline_key;
 mod shader_loading;
 pub mod shader_params;
-mod util;
+mod shader_pipeline;
 mod vertex_shader;
 
 /// Re-export of the essentials needed for rendering shapes
@@ -102,9 +97,9 @@ impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
-                .add_render_command::<Transparent2d, DrawSmudShape<SHADER>>()
+                .add_render_command::<Transparent2d, DrawShaderShape<SHADER>>()
                 .init_resource::<ExtractedShapes<SHADER>>()
-                .init_resource::<SpecializedRenderPipelines<SmudPipeline<SHADER>>>()
+                .init_resource::<SpecializedRenderPipelines<ShaderPipeline<SHADER>>>()
                 .add_systems(ExtractSchedule, (extract_shapes::<SHADER>,))
                 .add_systems(
                     Render,
@@ -122,11 +117,11 @@ impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
     fn finish(&self, app: &mut App) {
         app.get_sub_app_mut(RenderApp)
             .unwrap()
-            .init_resource::<SmudPipeline<SHADER>>();
+            .init_resource::<ShaderPipeline<SHADER>>();
     }
 }
 
-type DrawSmudShape<SHADER> = (
+type DrawShaderShape<SHADER> = (
     SetItemPipeline,
     SetShapeViewBindGroup<0, SHADER>,
     DrawShapeBatch<SHADER>,
@@ -182,194 +177,6 @@ impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBa
 }
 
 #[derive(Resource)]
-struct SmudPipeline<SHADER: ParameterizedShader> {
-    view_layout: BindGroupLayout,
-    phantom: PhantomData<SHADER>,
-}
-
-impl<SHADER: ParameterizedShader> FromWorld for SmudPipeline<SHADER> {
-    fn from_world(world: &mut World) -> Self {
-        let render_device = world.get_resource::<RenderDevice>().unwrap();
-
-        let view_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(ViewUniform::min_size()),
-                    },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(GlobalsUniform::min_size()),
-                    },
-                    count: None,
-                },
-            ],
-            label: Some("shape_view_layout"),
-        });
-
-        Self {
-            view_layout,
-            phantom: PhantomData,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct SmudPipelineKey {
-    mesh: PipelineKey,
-    hdr: bool,
-}
-
-impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for SmudPipeline<SHADER> {
-    type Key = SmudPipelineKey;
-
-    fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-        // let fragment_shader = self.shaders.fragment_shaders.get(&key.shader).unwrap();
-        // debug!("specializing for {fragment_shader:?}");
-
-        // an f32 is 4 bytes
-        const WORD_BYTE_LENGTH: u64 = 4;
-
-        const FRAME_WORDS: u64 = 1;
-        const POSITION_WORDS: u64 = 3;
-        const ROTATION_WORDS: u64 = 2;
-        const SCALE_WORDS: u64 = 1;
-
-        let proxy = <SHADER::Params as Default>::default();
-        let param_count = proxy.field_len() as u32;
-
-        // (GOTCHA! attributes are sorted alphabetically, and offsets need to reflect this)
-
-        let pre_param_attributes: [VertexAttribute; 1] = [
-            // Frame
-            VertexAttribute {
-                format: VertexFormat::Float32,
-                offset: 0,
-                shader_location: param_count + 3,
-            },
-        ];
-
-        const POST_PARAM_ATTRIBUTES_LEN: usize = 3;
-
-        // Customize how to store the meshes' vertex attributes in the vertex buffer
-        // Our meshes only have position, color and params
-        let mut vertex_attributes = Vec::with_capacity(
-            pre_param_attributes.len() + param_count as usize + POST_PARAM_ATTRIBUTES_LEN,
-        );
-
-        vertex_attributes.extend_from_slice(&pre_param_attributes);
-
-        let mut offset = (FRAME_WORDS) * WORD_BYTE_LENGTH;
-        let mut shader_location: u32 = 1;
-
-        for field in proxy.iter_fields() {
-            let Some(format) = helpers::get_vertex_format(field.type_id()) else {
-                panic!(
-                    "Cannot convert {} to wgsl type",
-                    field
-                        .get_represented_type_info()
-                        .map(|info| info.type_path())
-                        .unwrap_or_else(|| field.reflect_type_path())
-                );
-            };
-
-            vertex_attributes.push(VertexAttribute {
-                format,
-                offset,
-                shader_location,
-            });
-            offset += format.size();
-            shader_location += 1;
-        }
-
-        let post_param_attributes: [VertexAttribute; POST_PARAM_ATTRIBUTES_LEN] = [
-            // Position
-            VertexAttribute {
-                format: VertexFormat::Float32x3,
-                offset: offset,
-                shader_location: 0,
-            },
-            // Rotation
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: offset + (POSITION_WORDS * WORD_BYTE_LENGTH),
-                shader_location: shader_location,
-            },
-            // Scale
-            VertexAttribute {
-                format: VertexFormat::Float32,
-                offset: offset + ((POSITION_WORDS + ROTATION_WORDS) * WORD_BYTE_LENGTH),
-                shader_location: shader_location + 1,
-            },
-        ];
-
-        vertex_attributes.extend_from_slice(&post_param_attributes);
-
-        // This is the sum of the size of the attributes above
-        let vertex_array_stride =
-            offset + ((POSITION_WORDS + ROTATION_WORDS + SCALE_WORDS) * WORD_BYTE_LENGTH);
-
-        RenderPipelineDescriptor {
-            vertex: VertexState {
-                shader: shader_loading::get_vertex_handle::<SHADER>().clone_weak(),
-                entry_point: "vertex".into(),
-                shader_defs: Vec::new(),
-                buffers: vec![VertexBufferLayout {
-                    array_stride: vertex_array_stride,
-                    step_mode: VertexStepMode::Instance,
-                    attributes: vertex_attributes,
-                }],
-            },
-            fragment: Some(FragmentState {
-                shader: shader_loading::get_fragment_handle::<SHADER>().clone_weak(),
-                entry_point: "fragment".into(),
-                shader_defs: Vec::new(),
-                targets: vec![Some(ColorTargetState {
-                    format: if key.hdr {
-                        ViewTarget::TEXTURE_FORMAT_HDR
-                    } else {
-                        TextureFormat::bevy_default()
-                    },
-                    blend: Some(BlendState::ALPHA_BLENDING),
-                    write_mask: ColorWrites::ALL,
-                })],
-            }),
-            layout: vec![
-                // Bind group 0 is the view uniform
-                self.view_layout.clone(),
-            ],
-            primitive: PrimitiveState {
-                front_face: FrontFace::Ccw,
-                cull_mode: Some(Face::Back),
-                unclipped_depth: false, // What is this?
-                polygon_mode: PolygonMode::Fill,
-                conservative: false, // What is this?
-                topology: key.mesh.primitive_topology(),
-                strip_index_format: None, // TODO: what does this do?
-            },
-            depth_stencil: None,
-            multisample: MultisampleState {
-                count: key.mesh.msaa_samples(),
-                mask: !0,                         // what does the mask do?
-                alpha_to_coverage_enabled: false, // what is this?
-            },
-            label: Some("bevy_smud_pipeline".into()),
-            push_constant_ranges: Vec::new(),
-        }
-    }
-}
-
-#[derive(Resource)]
 struct ExtractedShapes<SHADER: ParameterizedShader> {
     vertices: BufferVec<ShapeVertex<SHADER::Params>>,
     view_bind_group: Option<BindGroup>,
@@ -414,8 +221,8 @@ fn sort_shapes<SHADER: ParameterizedShader>(mut extracted_shapes: ResMut<Extract
 fn queue_shapes<SHADER: ParameterizedShader>(
     mut commands: Commands,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    smud_pipeline: Res<SmudPipeline<SHADER>>,
-    mut pipelines: ResMut<SpecializedRenderPipelines<SmudPipeline<SHADER>>>,
+    pipeline: Res<ShaderPipeline<SHADER>>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<ShaderPipeline<SHADER>>>,
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
     extracted_shapes: Res<ExtractedShapes<SHADER>>,
@@ -423,7 +230,7 @@ fn queue_shapes<SHADER: ParameterizedShader>(
 ) {
     let draw_function = draw_functions
         .read()
-        .get_id::<DrawSmudShape<SHADER>>()
+        .get_id::<DrawShaderShape<SHADER>>()
         .unwrap();
 
     // Iterate over each view (a camera is a view)
@@ -434,11 +241,11 @@ fn queue_shapes<SHADER: ParameterizedShader>(
         let mesh_key = PipelineKey::from_msaa_samples(msaa.samples())
             | PipelineKey::from_primitive_topology(PrimitiveTopology::TriangleStrip);
 
-        let specialize_key = SmudPipelineKey {
+        let specialize_key = ShaderPipelineKey {
             mesh: mesh_key,
             hdr: view.hdr,
         };
-        let pipeline = pipelines.specialize(&pipeline_cache, &smud_pipeline, specialize_key);
+        let pipeline = pipelines.specialize(&pipeline_cache, &pipeline, specialize_key);
 
         let mut index = 0;
         while let Some(first_shape) = extracted_shapes.vertices.values().get(index) {
@@ -476,7 +283,7 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     view_uniforms: Res<ViewUniforms>,
-    smud_pipeline: Res<SmudPipeline<SHADER>>,
+    pipeline: Res<ShaderPipeline<SHADER>>,
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
@@ -489,8 +296,8 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
     };
 
     extracted_shapes.view_bind_group = Some(render_device.create_bind_group(
-        "smud_shape_view_bind_group",
-        &smud_pipeline.view_layout,
+        "param_shader_view_bind_group",
+        &pipeline.view_layout,
         &BindGroupEntries::sequential((view_binding, globals.clone())),
     ));
 

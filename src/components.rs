@@ -4,9 +4,8 @@ use crate::prelude::ParameterizedShader;
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
-/// Describes an SDF shape. Must be used with `SmudShaders`
 pub struct ShaderShape<SHADER: ParameterizedShader> {
-    /// The outer bounds for the shape, should be bigger than the sdf shape
+    /// The outer bounds for the shape, should be bigger than the shape
     pub frame: Frame,
     pub parameters: SHADER::Params,
 }

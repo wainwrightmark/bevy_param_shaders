@@ -1,14 +1,16 @@
 use bevy::{prelude::*, reflect::TypeUuid};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
-use bytemuck::{Pod, Zeroable};
 
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<BevyMorphShader>::default()))
+        .add_plugins((
+            DefaultPlugins,
+            ParamShaderPlugin::<BevyMorphShader>::default(),
+        ))
         .add_systems(Startup, setup)
         .run();
 }
@@ -36,10 +38,10 @@ impl ParameterizedShader for BevyMorphShader {
                 path: "bevy.wgsl",
                 import_path: "smud::bevy",
             },
-            FragmentImport{
+            FragmentImport {
                 path: "cubic_falloff.wgsl",
-                import_path: "smud::default_fill"
-            }
+                import_path: "smud::default_fill",
+            },
         ]
         .into_iter()
     }
@@ -55,7 +57,6 @@ fn setup(mut commands: Commands) {
         },
         ..default()
     });
-
 
     commands.spawn(Camera2dBundle::default());
 }

@@ -1,7 +1,6 @@
 use bevy::render::render_resource::PrimitiveTopology;
 
 // fork of Mesh2DPipelineKey (in order to remove bevy_sprite dependency)
-// todo: merge with SmudPipelineKey?
 bitflags::bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     #[repr(transparent)]

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{ShaderShape, parameterized_shader::*};
+use crate::{parameterized_shader::*, ShaderShape};
 
 #[derive(Bundle, Default, Clone, Debug)]
 pub struct ShaderBundle<SHADER: ParameterizedShader> {

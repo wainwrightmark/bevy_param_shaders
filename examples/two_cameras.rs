@@ -3,7 +3,8 @@ use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_param_shaders::prelude::*;
 use bytemuck::{Pod, Zeroable};
 
-// Should show the same circle twice with different bloom settings
+// Should show the same circle twice with different bloom settings.
+// Currently does not work
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
@@ -22,9 +23,9 @@ pub struct CircleShader;
 
 impl ParameterizedShader for CircleShader {
     fn fragment_body() -> impl Into<String> {
-        SDFAlphaCall{
+        SDFAlphaCall {
             sdf: "smud::sd_circle(in.pos, 1.0)",
-            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
+            fill_alpha: "smud::sd_fill_alpha_fwidth(d)",
             color: "in.color",
         }
     }

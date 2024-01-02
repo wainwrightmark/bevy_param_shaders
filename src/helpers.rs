@@ -21,10 +21,13 @@ pub(crate) fn format_params_locations<PARAMS: ShaderParams>() -> String {
         let type_id = proxy.field_at(index).unwrap().type_id();
 
         let Some(type_name) = get_wgsl_type_name(type_id) else {
-            panic!(
-                "Cannot convert {} to wgsl type",
-                proxy.field_at(index).unwrap().type_name()
-            );
+            let field = proxy.field_at(index).unwrap();
+            let name = field
+                .get_represented_type_info()
+                .map(|info| info.type_path())
+                .unwrap_or_else(|| field.reflect_type_path());
+
+            panic!("Cannot convert {name} to wgsl type",);
         };
 
         result.push_str(format!("@location({loc}) {name}: {type_name},\n").as_str());

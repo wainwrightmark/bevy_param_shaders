@@ -21,9 +21,9 @@ pub struct CircleShader;
 
 impl ParameterizedShader for CircleShader {
     fn fragment_body() -> impl Into<String> {
-        SDFAlphaCall{
+        SDFAlphaCall {
             sdf: "smud::sd_circle(in.pos, 1.0)",
-            fill_alpha:  "smud::sd_fill_alpha_fwidth(d)",
+            fill_alpha: "smud::sd_fill_alpha_fwidth(d)",
             color: "in.color",
         }
     }

@@ -32,9 +32,9 @@ impl<SHADER: ParameterizedShader> Plugin for ShaderLoadingPlugin<SHADER> {
 
         let asset_server = app.world.resource_mut::<AssetServer>();
 
-        for import in SHADER::imports(){
-            let shader: Handle<Shader> =  asset_server.load(import.path);
-            Box::leak( Box::new(shader));
+        for import in SHADER::imports() {
+            let shader: Handle<Shader> = asset_server.load(import.path);
+            Box::leak(Box::new(shader));
         }
 
         let mut shaders = app.world.resource_mut::<Assets<Shader>>();

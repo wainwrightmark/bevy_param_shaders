@@ -25,7 +25,7 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
 
     let source = format!(
         r##"
-#define_import_path smud::vertex_params_{params_id}
+#define_import_path param_shaders::vertex_params_{params_id}
 
 struct View {{
     view_proj: mat4x4<f32>,

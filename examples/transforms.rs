@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
