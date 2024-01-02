@@ -37,7 +37,5 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {{
 
     let tn = SHADER::TYPE_UUID;
 
-    let generated_shader = Shader::from_wgsl(source, format!("fragment_{tn}"));
-
-    return generated_shader;
+    Shader::from_wgsl(source, format!("fragment_{tn}"))
 }

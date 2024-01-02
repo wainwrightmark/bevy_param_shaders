@@ -212,10 +212,9 @@ fn extract_shapes<SHADER: ParameterizedShader>(
 }
 
 fn sort_shapes<SHADER: ParameterizedShader>(mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>) {
-    radsort::sort_by_key(
-        &mut extracted_shapes.as_mut().vertices.values_mut(),
-        |item| item.z_index(),
-    );
+    radsort::sort_by_key(extracted_shapes.as_mut().vertices.values_mut(), |item| {
+        item.z_index()
+    });
 }
 
 fn queue_shapes<SHADER: ParameterizedShader>(

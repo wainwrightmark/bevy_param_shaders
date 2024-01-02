@@ -6,14 +6,14 @@ use crate::{fragment_shader, parameterized_shader::*, vertex_shader};
 
 pub const fn get_vertex_handle<SHADER: ParameterizedShader>() -> Handle<Shader> {
     let id = 41038750339221851237u128;
-    let new_id = id.wrapping_add(SHADER::TYPE_UUID.as_u128().wrapping_mul(2875688479) as u128);
+    let new_id = id.wrapping_add(SHADER::TYPE_UUID.as_u128().wrapping_mul(2875688479));
 
     Handle::weak_from_u128(new_id)
 }
 
 pub const fn get_fragment_handle<SHADER: ParameterizedShader>() -> Handle<Shader> {
     let id = 24284142412967609353u128;
-    let new_id = id.wrapping_add(SHADER::TYPE_UUID.as_u128().wrapping_mul(2875688479) as u128);
+    let new_id = id.wrapping_add(SHADER::TYPE_UUID.as_u128().wrapping_mul(2875688479));
 
     Handle::weak_from_u128(new_id)
 }

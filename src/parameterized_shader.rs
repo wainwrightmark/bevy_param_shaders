@@ -30,13 +30,13 @@ pub struct SDFAlphaCall {
     pub color: &'static str,
 }
 
-impl Into<String> for SDFAlphaCall {
-    fn into(self) -> String {
+impl From<SDFAlphaCall> for String {
+    fn from(val: SDFAlphaCall) -> Self {
         let SDFAlphaCall {
             sdf,
             fill_alpha: fill,
             color,
-        } = self;
+        } = val;
         format!(
             r#"let d = {sdf};
         let a = {fill};

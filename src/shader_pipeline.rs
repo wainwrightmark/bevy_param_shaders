@@ -136,14 +136,14 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
             // Position
             VertexAttribute {
                 format: VertexFormat::Float32x3,
-                offset: offset,
+                offset,
                 shader_location: 0,
             },
             // Rotation
             VertexAttribute {
                 format: VertexFormat::Float32x2,
                 offset: offset + (POSITION_WORDS * WORD_BYTE_LENGTH),
-                shader_location: shader_location,
+                shader_location,
             },
             // Scale
             VertexAttribute {
