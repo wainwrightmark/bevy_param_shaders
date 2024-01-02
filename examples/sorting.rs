@@ -21,7 +21,7 @@ fn main() {
 
 macro_rules! define_sdf_shader {
     ($name:ident,$uuid:literal,$sdf:literal) => {
-        #[derive(Debug, Reflect, TypeUuid, Default)]
+        #[derive(Debug, TypeUuid, Default)]
         #[uuid = $uuid]
         pub struct $name;
 

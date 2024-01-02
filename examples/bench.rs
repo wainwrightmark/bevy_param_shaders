@@ -25,7 +25,7 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, Reflect, Clone, Copy, TypeUuid, Default)]
+#[derive(Debug, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyBirdShader;
 

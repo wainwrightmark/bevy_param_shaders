@@ -111,7 +111,7 @@ impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
                     ),
                 );
         };
-        app.register_type::<SHADER>();
+        //app.register_type::<SHADER>();
     }
 
     fn finish(&self, app: &mut App) {
