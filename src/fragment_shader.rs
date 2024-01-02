@@ -3,7 +3,7 @@ use bevy::render::render_resource::Shader;
 use crate::prelude::ParameterizedShader;
 
 pub(crate) fn create_fragment_shader<SHADER: ParameterizedShader>() -> Shader {
-    let params_locations = crate::helpers::format_params_locations::<SHADER::Params>();
+    let params_locations = crate::helpers::format_params_locations::<SHADER::Params>(1);
 
     let fragment_body: String = SHADER::fragment_body().into();
 

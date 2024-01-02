@@ -7,13 +7,13 @@ use crate::{
     shader_params::{LinearRGB, LinearRGBA},
 };
 
-pub(crate) fn format_params_locations<PARAMS: ShaderParams>() -> String {
+pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32) -> String {
     let mut result = "".to_string();
 
     let proxy = PARAMS::default();
     let param_count = proxy.field_len();
 
-    let mut loc = 1;
+    let mut loc = previous_params;
 
     for index in 0..param_count {
         //let t = crate::parameterized_shader::format_to_name(SHADER::get_format(index));

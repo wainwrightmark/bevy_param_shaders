@@ -9,11 +9,9 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
     let proxy = <SHADER::Params as Default>::default();
 
     let param_count = proxy.field_len();
-    let rotation_location = (param_count) + 1;
-    let scale_location = (param_count) + 2;
-    let frame_location = (param_count) + 3;
 
-    let params_locations = crate::helpers::format_params_locations::<SHADER::Params>();
+    let vertex_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(4);
+    let fragment_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(1);
 
     let mut params_assignments = "".to_string();
     for index in 0..param_count {
@@ -36,17 +34,20 @@ var<uniform> view: View;
 
 // as specified in `specialize()`
 struct Vertex {{
-@location(0) position: vec3<f32>,
-{params_locations}
-@location({rotation_location}) rotation: vec2<f32>,
-@location({scale_location}) scale: f32,
-@location({frame_location}) frame: vec2<f32>,
+@location(0) frame: vec2<f32>,
+@location(1) rotation: vec2<f32>,
+@location(2) position: vec3<f32>,
+@location(3) scale: f32,
+{vertex_params_locations}
+
+
+
 }};
 
 struct VertexOutput {{
 @builtin(position) clip_position: vec4<f32>,
 @location(0) pos: vec2<f32>,
-{params_locations}
+{fragment_params_locations}
 }};
 
 @vertex

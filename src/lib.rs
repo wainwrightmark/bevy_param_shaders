@@ -364,10 +364,10 @@ fn join_adjacent_batches(
 #[derive(Debug, Copy, Clone, Zeroable)]
 struct ShapeVertex<PARAMS: ShaderParams> {
     pub frame: [f32; 2],
-    pub params: PARAMS,
-    pub position: [f32; 3],
     pub rotation: [f32; 2],
+    pub position: [f32; 3],
     pub scale: f32,
+    pub params: PARAMS,
 }
 
 impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {

@@ -31,7 +31,7 @@ impl<SHADER: ParameterizedShader> FromWorld for ShaderPipeline<SHADER> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
-        const ENTRIES_WITH_TIME: &'static[BindGroupLayoutEntry] = &[
+        const ENTRIES_WITH_TIME: &'static [BindGroupLayoutEntry] = &[
             BindGroupLayoutEntry {
                 binding: 0,
                 visibility: ShaderStages::VERTEX_FRAGMENT,
@@ -54,34 +54,28 @@ impl<SHADER: ParameterizedShader> FromWorld for ShaderPipeline<SHADER> {
             },
         ];
 
-        const ENTRIES_WITHOUT_TIME: &'static[BindGroupLayoutEntry] = &[
-            BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: Some(<ViewUniform as ShaderType>::METADATA.min_size().0),
-                },
-                count: None,
+        const ENTRIES_WITHOUT_TIME: &'static [BindGroupLayoutEntry] = &[BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX_FRAGMENT,
+            ty: BindingType::Buffer {
+                ty: BufferBindingType::Uniform,
+                has_dynamic_offset: true,
+                min_binding_size: Some(<ViewUniform as ShaderType>::METADATA.min_size().0),
             },
-        ];
+            count: None,
+        }];
 
-
-        let view_layout = if SHADER::USE_TIME
-        {
+        let view_layout = if SHADER::USE_TIME {
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 entries: ENTRIES_WITH_TIME,
                 label: Some("shape_view_layout"),
             })
-        }else{
+        } else {
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 entries: ENTRIES_WITHOUT_TIME,
                 label: Some("shape_view_layout"),
             })
         };
-
-
 
         Self {
             view_layout,
@@ -106,8 +100,8 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
         const WORD_BYTE_LENGTH: u64 = 4;
 
         const FRAME_WORDS: u64 = 2;
-        const POSITION_WORDS: u64 = 3;
         const ROTATION_WORDS: u64 = 2;
+        const POSITION_WORDS: u64 = 3;
         const SCALE_WORDS: u64 = 1;
 
         let proxy = <SHADER::Params as Default>::default();
@@ -115,27 +109,46 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
 
         // (GOTCHA! attributes are sorted alphabetically, and offsets need to reflect this)
 
-        let pre_param_attributes: [VertexAttribute; 1] = [
+        let pre_param_attributes: [VertexAttribute; 4] = [
             // Frame
             VertexAttribute {
                 format: VertexFormat::Float32x2,
                 offset: 0,
-                shader_location: param_count + 3,
+                shader_location: 0,
+            },
+
+             // Rotation
+             VertexAttribute {
+                format: VertexFormat::Float32x2,
+                offset: ((FRAME_WORDS ) * WORD_BYTE_LENGTH),
+                shader_location: 1,
+            },
+
+            // Position
+            VertexAttribute {
+                format: VertexFormat::Float32x3,
+                offset: ((FRAME_WORDS + ROTATION_WORDS) * WORD_BYTE_LENGTH),
+                shader_location: 2,
+            },
+
+            // Scale
+            VertexAttribute {
+                format: VertexFormat::Float32,
+                offset: ((FRAME_WORDS+ ROTATION_WORDS + POSITION_WORDS ) * WORD_BYTE_LENGTH),
+                shader_location: 3,
             },
         ];
 
-        const POST_PARAM_ATTRIBUTES_LEN: usize = 3;
-
         // Customize how to store the meshes' vertex attributes in the vertex buffer
         // Our meshes only have position, color and params
-        let mut vertex_attributes = Vec::with_capacity(
-            pre_param_attributes.len() + param_count as usize + POST_PARAM_ATTRIBUTES_LEN,
-        );
+        let mut vertex_attributes =
+            Vec::with_capacity(pre_param_attributes.len() + param_count as usize);
 
         vertex_attributes.extend_from_slice(&pre_param_attributes);
 
-        let mut offset = (FRAME_WORDS) * WORD_BYTE_LENGTH;
-        let mut shader_location: u32 = 1;
+        let mut offset =
+            (FRAME_WORDS + POSITION_WORDS + ROTATION_WORDS + SCALE_WORDS) * WORD_BYTE_LENGTH;
+        let mut shader_location: u32 = 4;
 
         for field in proxy.iter_fields() {
             let Some(format) = crate::helpers::get_vertex_format(field.type_id()) else {
@@ -157,32 +170,6 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
             shader_location += 1;
         }
 
-        let post_param_attributes: [VertexAttribute; POST_PARAM_ATTRIBUTES_LEN] = [
-            // Position
-            VertexAttribute {
-                format: VertexFormat::Float32x3,
-                offset,
-                shader_location: 0,
-            },
-            // Rotation
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: offset + (POSITION_WORDS * WORD_BYTE_LENGTH),
-                shader_location,
-            },
-            // Scale
-            VertexAttribute {
-                format: VertexFormat::Float32,
-                offset: offset + ((POSITION_WORDS + ROTATION_WORDS) * WORD_BYTE_LENGTH),
-                shader_location: shader_location + 1,
-            },
-        ];
-
-        vertex_attributes.extend_from_slice(&post_param_attributes);
-
-        // This is the sum of the size of the attributes above
-        let vertex_array_stride =
-            offset + ((POSITION_WORDS + ROTATION_WORDS + SCALE_WORDS) * WORD_BYTE_LENGTH);
 
         RenderPipelineDescriptor {
             vertex: VertexState {
@@ -190,7 +177,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
                 entry_point: "vertex".into(),
                 shader_defs: Vec::new(),
                 buffers: vec![VertexBufferLayout {
-                    array_stride: vertex_array_stride,
+                    array_stride: offset,
                     step_mode: VertexStepMode::Instance,
                     attributes: vertex_attributes,
                 }],
