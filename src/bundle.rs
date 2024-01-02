@@ -3,11 +3,11 @@ use bevy::prelude::*;
 use crate::{parameterized_shader::*, ShaderShape};
 
 #[derive(Bundle, Default, Clone, Debug, PartialEq)]
-pub struct ShaderBundle<SHADER: ParameterizedShader + BundlableParameterizedShader> {
+pub struct ShaderBundle<SHADER: ParameterizedShader> {
     /// The shader to use
     pub shape: ShaderShape<SHADER>,
 
-    pub parameters: <SHADER as BundlableParameterizedShader>::ParamsBundle,
+    pub parameters: <SHADER as ParameterizedShader>::ParamsBundle,
 
     /// A transform, set this to set the position, orientation and scale of the shape
     ///

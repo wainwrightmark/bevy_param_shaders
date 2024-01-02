@@ -33,6 +33,10 @@ macro_rules! define_sdf_shader {
         pub struct $name;
 
         impl ParameterizedShader for $name {
+            type Params = ColorParams;
+            type ParamsQuery<'a> = &'a ColorParams;
+            type ParamsBundle = ColorParams;
+
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
                     sdf: $sdf,
@@ -49,8 +53,7 @@ macro_rules! define_sdf_shader {
                 .into_iter()
             }
 
-            type Params = ColorParams;
-            type ParamsQuery<'a> = &'a ColorParams;
+
 
             fn get_params<'w, 'a>(
                 query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,

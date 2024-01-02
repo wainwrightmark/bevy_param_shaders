@@ -21,6 +21,7 @@ pub struct CircleShader;
 impl ParameterizedShader for CircleShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
+    type ParamsBundle = ColorParams;
 
     fn fragment_body() -> impl Into<String> {
         SDFAlphaCall {

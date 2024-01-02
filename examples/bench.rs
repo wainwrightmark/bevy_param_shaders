@@ -32,6 +32,7 @@ pub struct BevyBirdShader;
 impl ParameterizedShader for BevyBirdShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
+    type ParamsBundle = ColorParams;
 
     fn fragment_body() -> impl Into<String> {
         SDFColorCall {

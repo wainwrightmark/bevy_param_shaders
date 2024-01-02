@@ -39,6 +39,7 @@ pub struct BevyMorphShader;
 impl ParameterizedShader for BevyMorphShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
+    type ParamsBundle = ColorParams;
 
     const USE_TIME: bool = true;
 

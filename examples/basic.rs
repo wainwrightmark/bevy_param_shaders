@@ -22,6 +22,8 @@ pub struct SquareShader;
 impl ParameterizedShader for SquareShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
+    type ParamsBundle = ColorParams;
+
     fn fragment_body() -> impl Into<String> {
         "return in.color;"
     }

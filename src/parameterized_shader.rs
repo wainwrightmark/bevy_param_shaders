@@ -12,6 +12,7 @@ use bevy::{
 pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
     type Params: ShaderParams;
     type ParamsQuery<'a>: ReadOnlyWorldQuery;
+    type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
     //TODO additional type param for required resources
 
     fn get_params<'w, 'a>(
@@ -30,15 +31,6 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
 
     /// The frame to use for this shader
     const FRAME: Frame;
-}
-
-pub trait BundlableParameterizedShader {
-    /// A bundle of the additional parameters needed to use this shader
-    type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
-}
-
-impl<'a, P : Bundle + Default + Clone + Debug + PartialEq, T : ParameterizedShader<ParamsQuery<'a> = &'a P, Params = P>>  BundlableParameterizedShader for T{
-    type ParamsBundle = P;
 }
 
 pub struct FragmentImport {

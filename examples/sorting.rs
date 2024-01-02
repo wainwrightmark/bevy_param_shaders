@@ -26,6 +26,10 @@ macro_rules! define_sdf_shader {
         pub struct $name;
 
         impl ParameterizedShader for $name {
+            type Params = ColorParams;
+            type ParamsQuery<'a> = &'a ColorParams;
+            type ParamsBundle = ColorParams;
+
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
                     sdf: $sdf,
@@ -47,9 +51,6 @@ macro_rules! define_sdf_shader {
             ) -> Self::Params {
                 *query_item
             }
-
-            type Params = ColorParams;
-            type ParamsQuery<'a> = &'a ColorParams;
 
             const FRAME: Frame = Frame::square(1.);
         }
