@@ -203,7 +203,6 @@ fn extract_shapes<SHADER: ParameterizedShader>(
             continue;
         }
 
-
         let shape_vertex = ShapeVertex::new(transform, shape.frame, shape.parameters);
 
         extracted_shapes.vertices.push(shape_vertex);
@@ -285,19 +284,27 @@ fn prepare_shapes<SHADER: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
-    let Some(globals) = globals_buffer.buffer.binding() else {
-        return;
-    };
-
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
     };
 
-    extracted_shapes.view_bind_group = Some(render_device.create_bind_group(
-        "param_shader_view_bind_group",
-        &pipeline.view_layout,
-        &BindGroupEntries::sequential((view_binding, globals.clone())),
-    ));
+    if SHADER::USE_TIME {
+        let Some(globals) = globals_buffer.buffer.binding() else {
+            return;
+        };
+
+        extracted_shapes.view_bind_group = Some(render_device.create_bind_group(
+            "param_shader_view_bind_group",
+            &pipeline.view_layout,
+            &BindGroupEntries::sequential((view_binding, globals.clone())),
+        ));
+    } else {
+        extracted_shapes.view_bind_group = Some(render_device.create_bind_group(
+            "param_shader_view_bind_group",
+            &pipeline.view_layout,
+            &BindGroupEntries::single(view_binding),
+        ));
+    }
 
     extracted_shapes
         .vertices

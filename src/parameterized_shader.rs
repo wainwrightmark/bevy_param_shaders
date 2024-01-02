@@ -10,6 +10,8 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + GetTypeRegistration + 's
 
     /// Get imports
     fn imports() -> impl Iterator<Item = FragmentImport>;
+
+    const USE_TIME: bool = false;
 }
 
 pub struct FragmentImport {

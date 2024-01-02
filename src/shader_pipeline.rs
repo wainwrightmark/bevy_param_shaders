@@ -31,31 +31,57 @@ impl<SHADER: ParameterizedShader> FromWorld for ShaderPipeline<SHADER> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
-        let view_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(ViewUniform::min_size()),
-                    },
-                    count: None,
+        const ENTRIES_WITH_TIME: &'static[BindGroupLayoutEntry] = &[
+            BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: Some(<ViewUniform as ShaderType>::METADATA.min_size().0),
                 },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(GlobalsUniform::min_size()),
-                    },
-                    count: None,
+                count: None,
+            },
+            BindGroupLayoutEntry {
+                binding: 1,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: Some(<GlobalsUniform as ShaderType>::METADATA.min_size().0),
                 },
-            ],
-            label: Some("shape_view_layout"),
-        });
+                count: None,
+            },
+        ];
+
+        const ENTRIES_WITHOUT_TIME: &'static[BindGroupLayoutEntry] = &[
+            BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: Some(<ViewUniform as ShaderType>::METADATA.min_size().0),
+                },
+                count: None,
+            },
+        ];
+
+
+        let view_layout = if SHADER::USE_TIME
+        {
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                entries: ENTRIES_WITH_TIME,
+                label: Some("shape_view_layout"),
+            })
+        }else{
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                entries: ENTRIES_WITHOUT_TIME,
+                label: Some("shape_view_layout"),
+            })
+        };
+
+
 
         Self {
             view_layout,

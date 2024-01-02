@@ -21,6 +21,10 @@ fn main() {
 pub struct BevyMorphShader;
 
 impl ParameterizedShader for BevyMorphShader {
+    type Params = ColorParams;
+
+    const USE_TIME: bool = true;
+
     fn fragment_body() -> impl Into<String> {
         SDFColorCall{
             sdf:"mix(smud::sd_circle(in.pos, 250.0), smud::bevy::sdf(in.pos), sin(globals.time) * 0.5 + 0.5)",
@@ -46,7 +50,7 @@ impl ParameterizedShader for BevyMorphShader {
         .into_iter()
     }
 
-    type Params = ColorParams;
+
 }
 
 fn setup(mut commands: Commands) {

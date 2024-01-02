@@ -12,13 +12,22 @@ pub(crate) fn create_fragment_shader<SHADER: ParameterizedShader>() -> Shader {
         .collect::<Vec<String>>()
         .join("\n");
 
+    let (time_import, time_group) = if SHADER::USE_TIME {
+        (
+            "#import bevy_render::globals::Globals",
+            "@group(0) @binding(1)
+        var<uniform> globals: Globals;",
+        )
+    } else {
+        ("", "")
+    };
+
     let source = format!(
         r#"
-#import bevy_render::globals::Globals
+{time_import}
 {imports}
 
-@group(0) @binding(1)
-var<uniform> globals: Globals;
+{time_group}
 
 struct FragmentInput {{
 @location(0) pos: vec2<f32>,
