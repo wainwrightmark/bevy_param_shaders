@@ -16,7 +16,9 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
+)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }
@@ -40,6 +42,7 @@ impl ParameterizedShader for BevyMorphShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
     type ParamsBundle = ColorParams;
+    type ResourceParams<'a> = ();
 
     const USE_TIME: bool = true;
 
@@ -70,6 +73,7 @@ impl ParameterizedShader for BevyMorphShader {
 
     fn get_params<'w, 'a>(
         query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
     ) -> Self::Params {
         *query_item
     }

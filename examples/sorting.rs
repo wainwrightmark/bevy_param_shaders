@@ -29,6 +29,7 @@ macro_rules! define_sdf_shader {
             type Params = ColorParams;
             type ParamsQuery<'a> = &'a ColorParams;
             type ParamsBundle = ColorParams;
+            type ResourceParams<'a> = ();
 
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
@@ -48,6 +49,7 @@ macro_rules! define_sdf_shader {
 
             fn get_params<'w, 'a>(
                 query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+                _r: &(),
             ) -> Self::Params {
                 *query_item
             }
@@ -58,7 +60,9 @@ macro_rules! define_sdf_shader {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
+)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }
@@ -99,8 +103,6 @@ fn setup(mut commands: Commands) {
     let heart_color = Color::RED;
 
     for i in 0..w {
-
-
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
                 commands.spawn((ShaderBundle {
@@ -124,7 +126,6 @@ fn setup(mut commands: Commands) {
     }
 
     for i in 0..w {
-
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
                 commands.spawn((ShaderBundle {

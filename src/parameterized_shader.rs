@@ -5,6 +5,7 @@ use bevy::{
     ecs::{
         bundle::Bundle,
         query::{ReadOnlyWorldQuery, WorldQuery},
+        system::SystemParam,
     },
     reflect::TypeUuid,
 };
@@ -13,10 +14,11 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
     type Params: ShaderParams;
     type ParamsQuery<'a>: ReadOnlyWorldQuery;
     type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
-    //TODO additional type param for required resources
+    type ResourceParams<'w> : SystemParam;
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w>,
+    fn get_params<'w, 'w1, 'w2,  's2, 'a, 'r>(
+        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w1>,
+        resource: &'r <Self::ResourceParams<'w> as SystemParam>::Item<'w2, 's2>,
     ) -> Self::Params;
 
     /// Get the body of the fragment shader fragment function

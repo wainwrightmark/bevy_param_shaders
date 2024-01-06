@@ -36,6 +36,7 @@ macro_rules! define_sdf_shader {
             type Params = ColorParams;
             type ParamsQuery<'a> = &'a ColorParams;
             type ParamsBundle = ColorParams;
+            type ResourceParams<'a> = ();
 
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
@@ -53,10 +54,9 @@ macro_rules! define_sdf_shader {
                 .into_iter()
             }
 
-
-
             fn get_params<'w, 'a>(
                 query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+                _r: &(),
             ) -> Self::Params {
                 *query_item
             }
@@ -108,7 +108,9 @@ define_sdf_shader!(
 );
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
+)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }

@@ -33,6 +33,7 @@ impl ParameterizedShader for BevyBirdShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
     type ParamsBundle = ColorParams;
+    type ResourceParams<'a> = ();
 
     fn fragment_body() -> impl Into<String> {
         SDFColorCall {
@@ -61,15 +62,21 @@ impl ParameterizedShader for BevyBirdShader {
 
     fn get_params<'w, 'a>(
         query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
     ) -> Self::Params {
         *query_item
     }
 
-    const FRAME: Frame = Frame{half_width:295.0, half_height:295.0};
+    const FRAME: Frame = Frame {
+        half_width: 295.0,
+        half_height: 295.0,
+    };
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
+)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }

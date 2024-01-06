@@ -9,7 +9,7 @@ use bevy::{
         query::ROQueryItem,
         system::{
             lifetimeless::{Read, SRes},
-            SystemParamItem,
+            StaticSystemParam, SystemParamItem,
         },
     },
     math::Vec3Swizzles,
@@ -195,8 +195,9 @@ impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
     }
 }
 
-fn extract_shapes<'w, 's, 'a, SHADER: ParameterizedShader>(
+fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
+    resource_params: StaticSystemParam<SHADER::ResourceParams<'w>>,
     shape_query: Extract<
         Query<
             'w,
@@ -207,13 +208,14 @@ fn extract_shapes<'w, 's, 'a, SHADER: ParameterizedShader>(
     >,
 ) {
     extracted_shapes.vertices.clear();
+    let resource = resource_params.into_inner();
 
     for (view_visibility, params_item, transform) in shape_query.iter() {
         if !view_visibility.get() {
             continue;
         }
 
-        let params = SHADER::get_params(params_item);
+        let params = SHADER::get_params(params_item, &resource);
 
         let shape_vertex = ShapeVertex::new(transform, params);
 

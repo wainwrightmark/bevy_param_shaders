@@ -20,7 +20,10 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
     }
 
     let params_id = SHADER::TYPE_UUID;
-    let Frame{half_width, half_height, } = SHADER::FRAME;
+    let Frame {
+        half_width,
+        half_height,
+    } = SHADER::FRAME;
 
     let source = format!(
         r##"

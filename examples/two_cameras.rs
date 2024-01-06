@@ -16,7 +16,9 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
+)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }
@@ -40,6 +42,7 @@ impl ParameterizedShader for CircleShader {
     type Params = ColorParams;
     type ParamsQuery<'a> = &'a ColorParams;
     type ParamsBundle = ColorParams;
+    type ResourceParams<'a> = ();
 
     fn fragment_body() -> impl Into<String> {
         SDFAlphaCall {
@@ -59,6 +62,7 @@ impl ParameterizedShader for CircleShader {
 
     fn get_params<'w, 'a>(
         query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
     ) -> Self::Params {
         *query_item
     }
@@ -69,7 +73,6 @@ impl ParameterizedShader for CircleShader {
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<CircleShader>::default(),
-
 
         parameters: ColorParams {
             color: Color::ORANGE_RED.into(),

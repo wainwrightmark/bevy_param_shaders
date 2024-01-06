@@ -44,7 +44,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {{
     );
     //bevy::log::info!("{source}");
 
-    let tn = SHADER:: TYPE_UUID;
+    let tn = SHADER::TYPE_UUID;
 
     Shader::from_wgsl(source, format!("fragment_{tn}"))
 }
