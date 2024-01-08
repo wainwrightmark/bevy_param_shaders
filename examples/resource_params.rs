@@ -3,7 +3,9 @@ use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_param_shaders::prelude::*;
 
 fn main() {
-    App::new()
+    let mut app = App::new();
+
+    app
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
@@ -11,8 +13,12 @@ fn main() {
             DefaultPlugins,
             ParamShaderPlugin::<BevyMorphShader>::default(),
         ))
-        .add_systems(Startup, setup)
-        .run();
+        .add_systems(Startup, setup);
+
+    app.insert_resource(ColorResource::default());
+    app.add_systems(Update, change_color);
+
+    app.run();
 }
 
 #[repr(C)]
@@ -21,24 +27,26 @@ fn main() {
 )]
 pub struct MorphParams {
     pub color: LinearRGBA,
-    pub time: f32
+    pub time: f32,
 }
 
 impl ShaderParams for MorphParams {}
 
-#[derive(Debug, Clone, Copy, PartialEq, Default, Component)]
-pub struct ColorParams {
+#[derive(Debug, Clone, Copy, PartialEq, Resource)]
+pub struct ColorResource {
     pub color: LinearRGBA,
 }
 
-
-
-impl From<bevy::prelude::Color> for ColorParams {
-    fn from(value: bevy::prelude::Color) -> Self {
+impl Default for ColorResource {
+    fn default() -> Self {
         Self {
-            color: value.into(),
+            color: Color::ORANGE_RED.into(),
         }
     }
+}
+
+fn change_color(mut color: ResMut<ColorResource>, time: Res<Time>) {
+    color.color.blue = (color.color.blue + (time.delta_seconds() * 0.2)) % 1.0;
 }
 
 #[repr(C)]
@@ -48,9 +56,9 @@ pub struct BevyMorphShader;
 
 impl ParameterizedShader for BevyMorphShader {
     type Params = MorphParams;
-    type ParamsQuery<'a> = &'a ColorParams;
-    type ParamsBundle = ColorParams;
-    type ResourceParams<'a> = Res<'a, Time>;
+    type ParamsQuery<'a> = ();
+    type ParamsBundle = ();
+    type ResourceParams<'a> = (Res<'a, Time>, Res<'a, ColorResource>);
 
     fn fragment_body() -> impl Into<String> {
         SDFColorCall{
@@ -80,12 +88,12 @@ impl ParameterizedShader for BevyMorphShader {
     const FRAME: Frame = Frame::square(295.0);
 
     fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
-        resource: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
+        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
+        resources: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
     ) -> Self::Params {
-        MorphParams{
-            color: query_item.color,
-            time: resource.elapsed_seconds_wrapped()
+        MorphParams {
+            color: resources.1.color,
+            time: resources.0.elapsed_seconds_wrapped(),
         }
     }
 }
@@ -93,7 +101,6 @@ impl ParameterizedShader for BevyMorphShader {
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderShape::<BevyMorphShader>::default(),
-        parameters: Color::ORANGE_RED.into(),
 
         ..default()
     });

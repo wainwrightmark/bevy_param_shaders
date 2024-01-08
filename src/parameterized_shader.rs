@@ -5,7 +5,7 @@ use bevy::{
     ecs::{
         bundle::Bundle,
         query::{ReadOnlyWorldQuery, WorldQuery},
-        system::SystemParam,
+        system::{SystemParam, ReadOnlySystemParam},
     },
     reflect::TypeUuid,
 };
@@ -14,7 +14,7 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
     type Params: ShaderParams;
     type ParamsQuery<'a>: ReadOnlyWorldQuery;
     type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
-    type ResourceParams<'w> : SystemParam;
+    type ResourceParams<'w> : SystemParam + ReadOnlySystemParam;
 
     fn get_params<'w, 'w1, 'w2,  's2, 'a, 'r>(
         query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w1>,

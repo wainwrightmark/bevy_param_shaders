@@ -26,7 +26,7 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         view::{ExtractedView, ViewUniformOffset, ViewUniforms},
-        Extract, Render, RenderApp, RenderSet,
+        Extract, Render, RenderApp, RenderSet
     },
     utils::FloatOrd,
 };
@@ -197,7 +197,6 @@ impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
 
 fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
-    resource_params: StaticSystemParam<SHADER::ResourceParams<'w>>,
     shape_query: Extract<
         Query<
             'w,
@@ -206,9 +205,13 @@ fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
             With<ShaderShape<SHADER>>,
         >,
     >,
+    resource_params: Extract<StaticSystemParam<SHADER::ResourceParams<'w>>>
 ) {
     extracted_shapes.vertices.clear();
-    let resource = resource_params.into_inner();
+
+
+
+    let resource = resource_params;
 
     for (view_visibility, params_item, transform) in shape_query.iter() {
         if !view_visibility.get() {
