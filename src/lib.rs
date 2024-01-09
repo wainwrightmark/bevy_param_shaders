@@ -26,7 +26,7 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         view::{ExtractedView, ViewUniformOffset, ViewUniforms},
-        Extract, Render, RenderApp, RenderSet
+        Extract, Render, RenderApp, RenderSet,
     },
     utils::FloatOrd,
 };
@@ -44,6 +44,7 @@ pub use components::*;
 mod bundle;
 mod components;
 mod fragment_shader;
+pub mod frame;
 mod helpers;
 pub mod parameterized_shader;
 mod pipeline_key;
@@ -60,9 +61,32 @@ mod vertex_shader;
 /// ```
 pub mod prelude {
     pub use crate::{
-        parameterized_shader::*, shader_params::*, Frame, ParamShaderPlugin, ShaderBundle,
-        ShaderShape,
+        frame::Frame, parameterized_shader::*, shader_params::*, ExtractToShaderPlugin,
+        ShaderBundle, ShaderUsage,
     };
+}
+
+pub struct ExtractToShaderPlugin<Extractable: ExtractToShader>(PhantomData<Extractable>);
+
+impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable> {
+    fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<ParamShaderPlugin<Extractable::Shader>>() {
+            app.add_plugins(ParamShaderPlugin::<Extractable::Shader>::default());
+        }
+
+        //todo in debug mode add a system to check that all shader plugins are registered
+        //todo in debug mode add a system to check that all shaders have the right parameters
+
+        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+            render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
+        };
+    }
+}
+
+impl<Extractable: ExtractToShader> Default for ExtractToShaderPlugin<Extractable> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -79,18 +103,17 @@ impl Plugin for ParameterShadersPlugin {
     }
 }
 
-/// Main plugin for enabling rendering of Sdf shapes
-pub struct ParamShaderPlugin<SHADER: ParameterizedShader>(PhantomData<SHADER>);
+struct ParamShaderPlugin<Shader: ParameterizedShader>(PhantomData<Shader>);
 
-impl<SHADER: ParameterizedShader> Default for ParamShaderPlugin<SHADER> {
+impl<Shader: ParameterizedShader> Default for ParamShaderPlugin<Shader> {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
+impl<Shader: ParameterizedShader> Plugin for ParamShaderPlugin<Shader> {
     fn build(&self, app: &mut App) {
-        app.add_plugins(ShaderLoadingPlugin::<SHADER>::default());
+        app.add_plugins(ShaderLoadingPlugin::<Shader>::default());
         if !app.is_plugin_added::<ParameterShadersPlugin>() {
             app.add_plugins(ParameterShadersPlugin);
         }
@@ -100,41 +123,41 @@ impl<SHADER: ParameterizedShader> Plugin for ParamShaderPlugin<SHADER> {
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
-                .add_render_command::<Transparent2d, DrawShaderShape<SHADER>>()
-                .init_resource::<ExtractedShapes<SHADER>>()
-                .init_resource::<SpecializedRenderPipelines<ShaderPipeline<SHADER>>>()
-                .add_systems(ExtractSchedule, (extract_shapes::<SHADER>,))
+                .add_render_command::<Transparent2d, DrawShaderShape<Shader>>()
+                .init_resource::<ExtractedShapes<Shader>>()
+                .init_resource::<SpecializedRenderPipelines<ShaderPipeline<Shader>>>()
                 .add_systems(
                     Render,
                     (
-                        (sort_shapes::<SHADER>, queue_shapes::<SHADER>)
+                        (sort_shapes::<Shader>, queue_shapes::<Shader>)
                             .chain()
                             .in_set(RenderSet::Queue),
-                        prepare_shapes::<SHADER>.in_set(RenderSet::PrepareBindGroups),
+                        prepare_shapes::<Shader>.in_set(RenderSet::PrepareBindGroups),
+                        cleanup_shapes::<Shader>.in_set(RenderSet::Cleanup)
                     ),
                 );
         };
-        //app.register_type::<SHADER>();
+        //app.register_type::<Shader>();
     }
 
     fn finish(&self, app: &mut App) {
         app.get_sub_app_mut(RenderApp)
             .unwrap()
-            .init_resource::<ShaderPipeline<SHADER>>();
+            .init_resource::<ShaderPipeline<Shader>>();
     }
 }
 
-type DrawShaderShape<SHADER> = (
+type DrawShaderShape<Shader> = (
     SetItemPipeline,
-    SetShapeViewBindGroup<0, SHADER>,
-    DrawShapeBatch<SHADER>,
+    SetShapeViewBindGroup<0, Shader>,
+    DrawShapeBatch<Shader>,
 );
 
-struct SetShapeViewBindGroup<const I: usize, SHADER: ParameterizedShader>(PhantomData<SHADER>);
-impl<P: PhaseItem, const I: usize, SHADER: ParameterizedShader> RenderCommand<P>
-    for SetShapeViewBindGroup<I, SHADER>
+struct SetShapeViewBindGroup<const I: usize, Shader: ParameterizedShader>(PhantomData<Shader>);
+impl<P: PhaseItem, const I: usize, Shader: ParameterizedShader> RenderCommand<P>
+    for SetShapeViewBindGroup<I, Shader>
 {
-    type Param = SRes<ExtractedShapes<SHADER>>;
+    type Param = SRes<ExtractedShapes<Shader>>;
     type ViewWorldQuery = Read<ViewUniformOffset>;
     type ItemWorldQuery = ();
 
@@ -154,9 +177,9 @@ impl<P: PhaseItem, const I: usize, SHADER: ParameterizedShader> RenderCommand<P>
     }
 }
 
-struct DrawShapeBatch<SHADER: ParameterizedShader>(PhantomData<SHADER>);
-impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBatch<SHADER> {
-    type Param = SRes<ExtractedShapes<SHADER>>;
+struct DrawShapeBatch<Shader: ParameterizedShader>(PhantomData<Shader>);
+impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBatch<Shader> {
+    type Param = SRes<ExtractedShapes<Shader>>;
     type ViewWorldQuery = ();
     type ItemWorldQuery = Read<ShapeBatch>;
 
@@ -180,12 +203,12 @@ impl<P: PhaseItem, SHADER: ParameterizedShader> RenderCommand<P> for DrawShapeBa
 }
 
 #[derive(Resource)]
-struct ExtractedShapes<SHADER: ParameterizedShader> {
-    vertices: BufferVec<ShapeVertex<SHADER::Params>>,
+struct ExtractedShapes<Shader: ParameterizedShader> {
+    vertices: BufferVec<ShapeVertex<Shader::Params>>,
     view_bind_group: Option<BindGroup>,
 }
 
-impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
+impl<Shader: ParameterizedShader> Default for ExtractedShapes<Shader> {
     fn default() -> Self {
         Self {
             // shapes: Default::default(),
@@ -195,21 +218,22 @@ impl<SHADER: ParameterizedShader> Default for ExtractedShapes<SHADER> {
     }
 }
 
-fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
-    mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
+fn extract_shapes<'w, 's, 'a, Extractable: ExtractToShader>(
+    mut extracted_shapes: ResMut<ExtractedShapes<Extractable::Shader>>,
     shape_query: Extract<
         Query<
             'w,
             's,
-            (&ViewVisibility, SHADER::ParamsQuery<'a>, &GlobalTransform),
-            With<ShaderShape<SHADER>>,
+            (
+                &ViewVisibility,
+                Extractable::ParamsQuery<'a>,
+                &GlobalTransform,
+            ),
+            With<ShaderUsage<Extractable>>,
         >,
     >,
-    resource_params: Extract<StaticSystemParam<SHADER::ResourceParams<'w>>>
+    resource_params: Extract<StaticSystemParam<Extractable::ResourceParams<'w>>>,
 ) {
-    extracted_shapes.vertices.clear();
-
-
 
     let resource = resource_params;
 
@@ -218,7 +242,7 @@ fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
             continue;
         }
 
-        let params = SHADER::get_params(params_item, &resource);
+        let params = Extractable::get_params(params_item, &resource);
 
         let shape_vertex = ShapeVertex::new(transform, params);
 
@@ -226,25 +250,25 @@ fn extract_shapes<'w,  's, 'a, SHADER: ParameterizedShader>(
     }
 }
 
-fn sort_shapes<SHADER: ParameterizedShader>(mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>) {
+fn sort_shapes<Shader: ParameterizedShader>(mut extracted_shapes: ResMut<ExtractedShapes<Shader>>) {
     radsort::sort_by_key(extracted_shapes.as_mut().vertices.values_mut(), |item| {
         item.z_index()
     });
 }
 
-fn queue_shapes<SHADER: ParameterizedShader>(
+fn queue_shapes<Shader: ParameterizedShader>(
     mut commands: Commands,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    pipeline: Res<ShaderPipeline<SHADER>>,
-    mut pipelines: ResMut<SpecializedRenderPipelines<ShaderPipeline<SHADER>>>,
+    pipeline: Res<ShaderPipeline<Shader>>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<ShaderPipeline<Shader>>>,
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
-    extracted_shapes: Res<ExtractedShapes<SHADER>>,
+    extracted_shapes: Res<ExtractedShapes<Shader>>,
     mut views: Query<(&mut RenderPhase<Transparent2d>, &ExtractedView)>,
 ) {
     let draw_function = draw_functions
         .read()
-        .get_id::<DrawShaderShape<SHADER>>()
+        .get_id::<DrawShaderShape<Shader>>()
         .unwrap();
 
     // Iterate over each view (a camera is a view)
@@ -293,19 +317,19 @@ fn queue_shapes<SHADER: ParameterizedShader>(
     }
 }
 
-fn prepare_shapes<SHADER: ParameterizedShader>(
+fn prepare_shapes<Shader: ParameterizedShader>(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     view_uniforms: Res<ViewUniforms>,
-    pipeline: Res<ShaderPipeline<SHADER>>,
-    mut extracted_shapes: ResMut<ExtractedShapes<SHADER>>,
+    pipeline: Res<ShaderPipeline<Shader>>,
+    mut extracted_shapes: ResMut<ExtractedShapes<Shader>>,
     globals_buffer: Res<GlobalsBuffer>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
     };
 
-    if SHADER::USE_TIME {
+    if Shader::USE_TIME {
         let Some(globals) = globals_buffer.buffer.binding() else {
             return;
         };
@@ -375,6 +399,12 @@ fn join_adjacent_batches(
             }
         }
     }
+}
+
+fn cleanup_shapes<Shader: ParameterizedShader>(
+    mut extracted_shapes: ResMut<ExtractedShapes<Shader>>,
+){
+    extracted_shapes.vertices.clear();
 }
 
 #[repr(C)]

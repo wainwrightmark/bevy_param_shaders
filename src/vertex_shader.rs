@@ -1,17 +1,17 @@
-use bevy::{reflect::Struct, render::render_resource::Shader};
+use bevy::{reflect::Struct};
 
-use crate::{parameterized_shader::*, Frame};
+use crate::{parameterized_shader::*, prelude::Frame};
 
 /// Creates a vertex shader with the correct number of arguments
-pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
+pub(crate) fn create_vertex_shader<Shader: ParameterizedShader>() -> bevy::render::render_resource::Shader {
     // TODO Create this string at compile time?
 
-    let proxy = <SHADER::Params as Default>::default();
+    let proxy = <Shader::Params as Default>::default();
 
     let param_count = proxy.field_len();
 
-    let vertex_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(3);
-    let fragment_params_locations = crate::helpers::format_params_locations::<SHADER::Params>(1);
+    let vertex_params_locations = crate::helpers::format_params_locations::<Shader::Params>(3);
+    let fragment_params_locations = crate::helpers::format_params_locations::<Shader::Params>(1);
 
     let mut params_assignments = "".to_string();
     for index in 0..param_count {
@@ -19,11 +19,11 @@ pub(crate) fn create_vertex_shader<SHADER: ParameterizedShader>() -> Shader {
         params_assignments.push_str(format!("    out.{name} = vertex.{name};\n").as_str());
     }
 
-    let params_id = SHADER::TYPE_UUID;
+    let params_id = Shader::TYPE_UUID;
     let Frame {
         half_width,
         half_height,
-    } = SHADER::FRAME;
+    } = Shader::FRAME;
 
     let source = format!(
         r##"
@@ -76,5 +76,5 @@ return out;
     );
     //bevy::log::info!("{source}");
     let path = file!();
-    Shader::from_wgsl(source, path)
+    bevy::render::render_resource::Shader::from_wgsl(source, path)
 }

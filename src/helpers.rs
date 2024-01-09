@@ -16,7 +16,7 @@ pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32
     let mut loc = previous_params;
 
     for index in 0..param_count {
-        //let t = crate::parameterized_shader::format_to_name(SHADER::get_format(index));
+        //let t = crate::parameterized_shader::format_to_name(Shader::get_format(index));
         let name = proxy.name_at(index).unwrap();
         let type_id = proxy.field_at(index).unwrap().type_id();
 

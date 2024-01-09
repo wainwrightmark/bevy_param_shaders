@@ -9,7 +9,7 @@ fn main() {
         .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<BevyMorphShader>::default(),
+            ExtractToShaderPlugin::<BevyMorphShader>::default(),
         ))
         .add_systems(Startup, setup)
         .run();
@@ -38,11 +38,22 @@ impl From<bevy::prelude::Color> for ColorParams {
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyMorphShader;
 
-impl ParameterizedShader for BevyMorphShader {
-    type Params = ColorParams;
+impl ExtractToShader for BevyMorphShader {
+    type Shader = Self;
     type ParamsQuery<'a> = &'a ColorParams;
     type ParamsBundle = ColorParams;
     type ResourceParams<'a> = ();
+
+    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
+        _resource: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        *query_item
+    }
+}
+
+impl ParameterizedShader for BevyMorphShader {
+    type Params = ColorParams;
 
     const USE_TIME: bool = true;
 
@@ -71,19 +82,11 @@ impl ParameterizedShader for BevyMorphShader {
         .into_iter()
     }
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
-        _r: &(),
-    ) -> Self::Params {
-        *query_item
-    }
-
     const FRAME: Frame = Frame::square(295.0);
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShaderBundle {
-        shape: ShaderShape::<BevyMorphShader>::default(),
+    commands.spawn(ShaderBundle::<BevyMorphShader> {
         parameters: Color::ORANGE_RED.into(),
 
         ..default()

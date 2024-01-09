@@ -11,25 +11,42 @@ fn main() {
         .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
-            ExtractToShaderPlugin::<ExtractColorToSquare>::default(),
+            ExtractToShaderPlugin::<BlueSquare>::default(),
+            ExtractToShaderPlugin::<RedSquare>::default(),
         ))
         .add_systems(Startup, setup)
         .run();
 }
 
-pub struct ExtractColorToSquare;
+pub struct BlueSquare;
 
-impl ExtractToShader for ExtractColorToSquare {
+impl ExtractToShader for BlueSquare {
     type Shader = SquareShader;
-    type ParamsQuery<'a> = &'a ColorParams;
-    type ParamsBundle = ColorParams;
+    type ParamsQuery<'a> = ();
+    type ParamsBundle = ();
     type ResourceParams<'a> = ();
 
     fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
-        *query_item
+        Color::BLUE.with_a(0.5).into()
+    }
+}
+
+pub struct RedSquare;
+
+impl ExtractToShader for RedSquare {
+    type Shader = SquareShader;
+    type ParamsQuery<'a> = ();
+    type ParamsBundle = ();
+    type ResourceParams<'a> = ();
+
+    fn get_params<'w, 'a>(
+        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        Color::RED.with_a(0.5).into()
     }
 }
 
@@ -56,9 +73,7 @@ impl ParameterizedShader for SquareShader {
 }
 
 #[repr(C)]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ColorParams {
     pub color: LinearRGBA,
 }
@@ -74,14 +89,14 @@ impl From<bevy::prelude::Color> for ColorParams {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShaderBundle::<ExtractColorToSquare> {
-        parameters: Color::ORANGE_RED.into(),
+    commands.spawn(ShaderBundle::<RedSquare> {
+        parameters: (),
 
         ..default()
     });
 
-    commands.spawn(ShaderBundle::<ExtractColorToSquare> {
-        parameters: Color::BLUE.with_a(0.8).into(),
+    commands.spawn(ShaderBundle::<BlueSquare> {
+        parameters: (),
         transform: Transform::from_rotation(Quat::from_rotation_z(consts::FRAC_PI_4)),
         ..default()
     });

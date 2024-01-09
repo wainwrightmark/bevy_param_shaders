@@ -10,7 +10,10 @@ fn main() {
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
-        .add_plugins((DefaultPlugins, ParamShaderPlugin::<CircleShader>::default()))
+        .add_plugins((
+            DefaultPlugins,
+            ExtractToShaderPlugin::<CircleShader>::default(),
+        ))
         .add_systems(Startup, setup)
         .run();
 }
@@ -33,6 +36,20 @@ impl From<bevy::prelude::Color> for ColorParams {
     }
 }
 
+impl ExtractToShader for CircleShader {
+    type Shader = Self;
+    type ParamsQuery<'a> = &'a ColorParams;
+    type ParamsBundle = ColorParams;
+    type ResourceParams<'a> = ();
+
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        *query_item
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
@@ -40,9 +57,6 @@ pub struct CircleShader;
 
 impl ParameterizedShader for CircleShader {
     type Params = ColorParams;
-    type ParamsQuery<'a> = &'a ColorParams;
-    type ParamsBundle = ColorParams;
-    type ResourceParams<'a> = ();
 
     fn fragment_body() -> impl Into<String> {
         SDFAlphaCall {
@@ -60,19 +74,12 @@ impl ParameterizedShader for CircleShader {
         .into_iter()
     }
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
-        _r: &(),
-    ) -> Self::Params {
-        *query_item
-    }
-
     const FRAME: Frame = Frame::square(1.0);
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<CircleShader>::default(),
+        shape: ShaderUsage::<CircleShader>::default(),
 
         parameters: ColorParams {
             color: Color::ORANGE_RED.into(),

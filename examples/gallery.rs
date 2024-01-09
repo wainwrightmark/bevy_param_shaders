@@ -10,14 +10,14 @@ fn main() {
         .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<BoxShader>::default(),
-            ParamShaderPlugin::<CircleShader>::default(),
-            ParamShaderPlugin::<HeartShader>::default(),
-            ParamShaderPlugin::<MoonShader>::default(),
-            ParamShaderPlugin::<PieShader>::default(),
-            ParamShaderPlugin::<EggShader>::default(),
-            ParamShaderPlugin::<RoundedXShader>::default(),
-            ParamShaderPlugin::<EllipseShader>::default(),
+            ExtractToShaderPlugin::<BoxShader>::default(),
+            ExtractToShaderPlugin::<CircleShader>::default(),
+            ExtractToShaderPlugin::<HeartShader>::default(),
+            ExtractToShaderPlugin::<MoonShader>::default(),
+            ExtractToShaderPlugin::<PieShader>::default(),
+            ExtractToShaderPlugin::<EggShader>::default(),
+            ExtractToShaderPlugin::<RoundedXShader>::default(),
+            ExtractToShaderPlugin::<EllipseShader>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
             PanCamPlugin,
@@ -32,11 +32,23 @@ macro_rules! define_sdf_shader {
         #[uuid = $uuid]
         pub struct $name;
 
-        impl ParameterizedShader for $name {
-            type Params = ColorParams;
+        impl ExtractToShader for $name {
+            type Shader = Self;
             type ParamsQuery<'a> = &'a ColorParams;
             type ParamsBundle = ColorParams;
             type ResourceParams<'a> = ();
+
+            fn get_params<'w, 'a>(
+                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+                _r: &(),
+            ) -> <Self::Shader as ParameterizedShader>::Params {
+                *query_item
+            }
+        }
+
+        impl ParameterizedShader for $name {
+            type Params = ColorParams;
+
 
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
@@ -52,13 +64,6 @@ macro_rules! define_sdf_shader {
                     import_path: "smud",
                 }]
                 .into_iter()
-            }
-
-            fn get_params<'w, 'a>(
-                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
-                _r: &(),
-            ) -> Self::Params {
-                *query_item
             }
 
             const FRAME: Frame = Frame::square(1.);
@@ -160,9 +165,8 @@ fn setup(mut commands: Commands) {
             macro_rules! spawn_bundle {
                 ($name:ident) => {
                     commands.spawn((
-                        ShaderBundle {
+                        ShaderBundle::<$name> {
                             transform,
-                            shape: ShaderShape::<$name>::default(),
                             parameters: color.into(),
                             ..default()
                         },

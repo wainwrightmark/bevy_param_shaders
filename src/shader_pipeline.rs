@@ -22,12 +22,12 @@ use crate::parameterized_shader::*;
 use std::marker::PhantomData;
 
 #[derive(Resource)]
-pub(crate) struct ShaderPipeline<SHADER: ParameterizedShader> {
+pub(crate) struct ShaderPipeline<Shader: ParameterizedShader> {
     pub view_layout: BindGroupLayout,
-    phantom: PhantomData<SHADER>,
+    phantom: PhantomData<Shader>,
 }
 
-impl<SHADER: ParameterizedShader> FromWorld for ShaderPipeline<SHADER> {
+impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
@@ -65,7 +65,7 @@ impl<SHADER: ParameterizedShader> FromWorld for ShaderPipeline<SHADER> {
             count: None,
         }];
 
-        let view_layout = if SHADER::USE_TIME {
+        let view_layout = if Shader::USE_TIME {
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 entries: ENTRIES_WITH_TIME,
                 label: Some("shape_view_layout"),
@@ -90,7 +90,7 @@ pub(crate) struct ShaderPipelineKey {
     pub hdr: bool,
 }
 
-impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<SHADER> {
+impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<Shader> {
     type Key = ShaderPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
@@ -105,7 +105,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
 
         const CONSTANT_PARAMS: usize = 3;
 
-        let proxy = <SHADER::Params as Default>::default();
+        let proxy = <Shader::Params as Default>::default();
         let param_count = proxy.field_len() as u32;
 
         // (GOTCHA! attributes are sorted alphabetically, and offsets need to reflect this)
@@ -163,7 +163,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
 
         RenderPipelineDescriptor {
             vertex: VertexState {
-                shader: crate::shader_loading::get_vertex_handle::<SHADER>().clone_weak(),
+                shader: crate::shader_loading::get_vertex_handle::<Shader>().clone_weak(),
                 entry_point: "vertex".into(),
                 shader_defs: Vec::new(),
                 buffers: vec![VertexBufferLayout {
@@ -173,7 +173,7 @@ impl<SHADER: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
                 }],
             },
             fragment: Some(FragmentState {
-                shader: crate::shader_loading::get_fragment_handle::<SHADER>().clone_weak(),
+                shader: crate::shader_loading::get_fragment_handle::<Shader>().clone_weak(),
                 entry_point: "fragment".into(),
                 shader_defs: Vec::new(),
                 targets: vec![Some(ColorTargetState {

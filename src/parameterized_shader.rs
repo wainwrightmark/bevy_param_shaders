@@ -1,25 +1,31 @@
 use std::fmt::Debug;
 
-use crate::{shader_params::ShaderParams, Frame};
+use crate::{prelude::Frame, shader_params::ShaderParams};
 use bevy::{
     ecs::{
         bundle::Bundle,
         query::{ReadOnlyWorldQuery, WorldQuery},
-        system::{SystemParam, ReadOnlySystemParam},
+        system::{ReadOnlySystemParam, SystemParam},
     },
     reflect::TypeUuid,
 };
 
-pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
-    type Params: ShaderParams;
+/// A set of parameters that will extracted to ShaderParams and drawn with a particular shader
+pub trait ExtractToShader: Sync + Send + 'static {
+    type Shader: ParameterizedShader;
     type ParamsQuery<'a>: ReadOnlyWorldQuery;
     type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
-    type ResourceParams<'w> : SystemParam + ReadOnlySystemParam;
+    type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
-    fn get_params<'w, 'w1, 'w2,  's2, 'a, 'r>(
+    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
         query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w1>,
         resource: &'r <Self::ResourceParams<'w> as SystemParam>::Item<'w2, 's2>,
-    ) -> Self::Params;
+    ) -> <Self::Shader as ParameterizedShader>::Params;
+}
+
+/// A particular shader
+pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
+    type Params: ShaderParams;
 
     /// Get the body of the fragment shader fragment function
     /// This will take an `in` argument with a `pos` parameter and one parameter for each field

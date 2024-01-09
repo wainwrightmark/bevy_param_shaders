@@ -11,7 +11,7 @@ fn main() {
         .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<BevyMorphShader>::default(),
+            ExtractToShaderPlugin::<BevyMorphShader>::default(),
         ))
         .add_systems(Startup, setup);
 
@@ -49,16 +49,33 @@ fn change_color(mut color: ResMut<ColorResource>, time: Res<Time>) {
     color.color.blue = (color.color.blue + (time.delta_seconds() * 0.2)) % 1.0;
 }
 
+
+
 #[repr(C)]
 #[derive(Debug, TypeUuid, Default)]
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyMorphShader;
 
-impl ParameterizedShader for BevyMorphShader {
-    type Params = MorphParams;
+impl ExtractToShader for BevyMorphShader{
+    type Shader = Self;
     type ParamsQuery<'a> = ();
     type ParamsBundle = ();
     type ResourceParams<'a> = (Res<'a, Time>, Res<'a, ColorResource>);
+
+    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
+        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
+        resources: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        MorphParams {
+            color: resources.1.color,
+            time: resources.0.elapsed_seconds_wrapped(),
+        }
+    }
+}
+
+impl ParameterizedShader for BevyMorphShader {
+    type Params = MorphParams;
+
 
     fn fragment_body() -> impl Into<String> {
         SDFColorCall{
@@ -87,20 +104,12 @@ impl ParameterizedShader for BevyMorphShader {
 
     const FRAME: Frame = Frame::square(295.0);
 
-    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
-        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
-        resources: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
-    ) -> Self::Params {
-        MorphParams {
-            color: resources.1.color,
-            time: resources.0.elapsed_seconds_wrapped(),
-        }
-    }
+
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<BevyMorphShader>::default(),
+        shape: ShaderUsage::<BevyMorphShader>::default(),
 
         ..default()
     });

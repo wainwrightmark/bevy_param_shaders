@@ -10,9 +10,9 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<CircleShader>::default(),
-            ParamShaderPlugin::<BoxShader>::default(),
-            ParamShaderPlugin::<HeartShader>::default(),
+            ExtractToShaderPlugin::<CircleShader>::default(),
+            ExtractToShaderPlugin::<BoxShader>::default(),
+            ExtractToShaderPlugin::<HeartShader>::default(),
             PanCamPlugin,
         ))
         .add_systems(Startup, setup)
@@ -25,11 +25,22 @@ macro_rules! define_sdf_shader {
         #[uuid = $uuid]
         pub struct $name;
 
-        impl ParameterizedShader for $name {
-            type Params = ColorParams;
+        impl ExtractToShader for $name {
+            type Shader = Self;
             type ParamsQuery<'a> = &'a ColorParams;
             type ParamsBundle = ColorParams;
             type ResourceParams<'a> = ();
+
+            fn get_params<'w, 'a>(
+                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+                _r: &(),
+            ) -> <Self::Shader as ParameterizedShader>::Params {
+                *query_item
+            }
+        }
+
+        impl ParameterizedShader for $name {
+            type Params = ColorParams;
 
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
@@ -45,13 +56,6 @@ macro_rules! define_sdf_shader {
                     import_path: "smud",
                 }]
                 .into_iter()
-            }
-
-            fn get_params<'w, 'a>(
-                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
-                _r: &(),
-            ) -> Self::Params {
-                *query_item
             }
 
             const FRAME: Frame = Frame::square(1.);
@@ -105,14 +109,13 @@ fn setup(mut commands: Commands) {
     for i in 0..w {
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
-                commands.spawn((ShaderBundle {
+                commands.spawn((ShaderBundle::<$name> {
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,
                         100.0,
                         ((i as f32) * 100.0) + $z,
                     ))
                     .with_scale(Vec3::ONE * spacing * 0.75),
-                    shape: ShaderShape::<$name>::default(),
                     parameters: ($color).into(),
 
                     ..default()
@@ -128,14 +131,13 @@ fn setup(mut commands: Commands) {
     for i in 0..w {
         macro_rules! spawn_bundle {
             ($name:ident, $z:literal, $color:ident) => {
-                commands.spawn((ShaderBundle {
+                commands.spawn((ShaderBundle::<$name> {
                     transform: Transform::from_translation(Vec3::new(
                         i as f32 * spacing - w as f32 * spacing / 2.,
                         -100.0,
                         (i as f32) + ($z * 100.0),
                     ))
                     .with_scale(Vec3::ONE * spacing * 0.75),
-                    shape: ShaderShape::<$name>::default(),
                     parameters: ($color).into(),
                     ..default()
                 },))

@@ -2,31 +2,33 @@ use std::marker::PhantomData;
 
 use bevy::prelude::*;
 
-use crate::prelude::ParameterizedShader;
+use crate::prelude::ExtractToShader;
 
+/// Indicates that a particular shader should be used to draw this entity.
+/// The entity may need additional components to be extracted for drawing
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct ShaderShape<SHADER: ParameterizedShader> {
-    phantom: PhantomData<SHADER>,
+pub struct ShaderUsage<Extract: ExtractToShader> {
+    phantom: PhantomData<Extract>,
 }
 
-impl<SHADER: ParameterizedShader> std::fmt::Debug for ShaderShape<SHADER> {
+impl<Extract: ExtractToShader> std::fmt::Debug for ShaderUsage<Extract> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ShaderShape").finish()
+        f.debug_struct("ShaderUsage").finish()
     }
 }
 
-impl<SHADER: ParameterizedShader> Eq for ShaderShape<SHADER> {}
+impl<Extract: ExtractToShader> Eq for ShaderUsage<Extract> {}
 
-impl<SHADER: ParameterizedShader> PartialEq for ShaderShape<SHADER> {
+impl<Extract: ExtractToShader> PartialEq for ShaderUsage<Extract> {
     fn eq(&self, other: &Self) -> bool {
         self.phantom == other.phantom
     }
 }
 
-impl<SHADER: ParameterizedShader> Copy for ShaderShape<SHADER> {}
+impl<Extract: ExtractToShader> Copy for ShaderUsage<Extract> {}
 
-impl<SHADER: ParameterizedShader> Clone for ShaderShape<SHADER> {
+impl<Extract: ExtractToShader> Clone for ShaderUsage<Extract> {
     fn clone(&self) -> Self {
         Self {
             phantom: self.phantom.clone(),
@@ -34,7 +36,7 @@ impl<SHADER: ParameterizedShader> Clone for ShaderShape<SHADER> {
     }
 }
 
-impl<SHADER: ParameterizedShader> Default for ShaderShape<SHADER> {
+impl<Extract: ExtractToShader> Default for ShaderUsage<Extract> {
     fn default() -> Self {
         Self {
             phantom: PhantomData,
@@ -42,26 +44,3 @@ impl<SHADER: ParameterizedShader> Default for ShaderShape<SHADER> {
     }
 }
 
-/// Bounds for describing how far the fragment shader of a shape will reach, should be bigger than the shape unless you want to clip it
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Frame {
-    pub half_width: f32,
-    pub half_height: f32, // todo: it probably makes sense for this to be the full width instead...
-}
-
-impl Frame {
-    const DEFAULT: Self = Self::square(1.0);
-
-    pub const fn square(radius: f32) -> Self {
-        Self {
-            half_height: radius,
-            half_width: radius,
-        }
-    }
-}
-
-impl Default for Frame {
-    fn default() -> Self {
-        Self::DEFAULT
-    }
-}

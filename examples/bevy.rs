@@ -10,7 +10,7 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
         .add_plugins((
             DefaultPlugins,
-            ParamShaderPlugin::<BevyBirdShader>::default(),
+            ExtractToShaderPlugin::<BevyBirdShader>::default(),
             PanCamPlugin,
         ))
         .add_systems(Startup, setup)
@@ -40,11 +40,22 @@ impl From<bevy::prelude::Color> for ColorParams {
 #[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
 pub struct BevyBirdShader;
 
-impl ParameterizedShader for BevyBirdShader {
-    type Params = ColorParams;
+impl ExtractToShader for BevyBirdShader {
+    type Shader = BevyBirdShader;
     type ParamsQuery<'a> = &'a ColorParams;
     type ParamsBundle = ColorParams;
     type ResourceParams<'a> = ();
+
+    fn get_params<'w, 'a>(
+        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+        _r: &(),
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        *query_item
+    }
+}
+
+impl ParameterizedShader for BevyBirdShader {
+    type Params = ColorParams;
 
     fn fragment_body() -> impl Into<String> {
         SDFColorCall {
@@ -71,13 +82,6 @@ impl ParameterizedShader for BevyBirdShader {
         .into_iter()
     }
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
-        _r: &(),
-    ) -> Self::Params {
-        *query_item
-    }
-
     const FRAME: Frame = Frame {
         half_width: 295.0,
         half_height: 295.0,
@@ -86,7 +90,7 @@ impl ParameterizedShader for BevyBirdShader {
 
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
-        shape: ShaderShape::<BevyBirdShader>::default(),
+        shape: ShaderUsage::<BevyBirdShader>::default(),
         parameters: Color::rgb(0.36, 0.41, 0.45).into(),
 
         ..default()
