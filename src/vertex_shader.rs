@@ -19,7 +19,7 @@ pub(crate) fn create_vertex_shader<Shader: ParameterizedShader>() -> bevy::rende
         params_assignments.push_str(format!("    out.{name} = vertex.{name};\n").as_str());
     }
 
-    let params_id = Shader::TYPE_UUID;
+    let tp = Shader::type_path();
     let Frame {
         half_width,
         half_height,
@@ -27,7 +27,7 @@ pub(crate) fn create_vertex_shader<Shader: ParameterizedShader>() -> bevy::rende
 
     let source = format!(
         r##"
-#define_import_path param_shaders::vertex_params_{params_id}
+#define_import_path param_shaders::vertex_params_{tp}
 
 struct View {{
     view_proj: mat4x4<f32>,

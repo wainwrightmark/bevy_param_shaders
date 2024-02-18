@@ -33,9 +33,9 @@ impl ExtractToShader for ExtractColorToSquare {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, TypeUuid, Default)]
-#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+
+#[derive(Debug, TypePath, Default)]
+
 pub struct SquareShader;
 
 impl ParameterizedShader for SquareShader {
@@ -53,6 +53,8 @@ impl ParameterizedShader for SquareShader {
         half_width: 100.0,
         half_height: 50.0,
     };
+
+    const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }
 
 #[repr(C)]

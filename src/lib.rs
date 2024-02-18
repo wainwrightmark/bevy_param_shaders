@@ -133,7 +133,7 @@ impl<Shader: ParameterizedShader> Plugin for ParamShaderPlugin<Shader> {
                             .chain()
                             .in_set(RenderSet::Queue),
                         prepare_shapes::<Shader>.in_set(RenderSet::PrepareBindGroups),
-                        cleanup_shapes::<Shader>.in_set(RenderSet::Cleanup)
+                        cleanup_shapes::<Shader>.in_set(RenderSet::Cleanup),
                     ),
                 );
         };
@@ -158,13 +158,13 @@ impl<P: PhaseItem, const I: usize, Shader: ParameterizedShader> RenderCommand<P>
     for SetShapeViewBindGroup<I, Shader>
 {
     type Param = SRes<ExtractedShapes<Shader>>;
-    type ViewWorldQuery = Read<ViewUniformOffset>;
-    type ItemWorldQuery = ();
+    type ViewQuery = Read<ViewUniformOffset>;
+    type ItemQuery = ();
 
     fn render<'w>(
         _item: &P,
-        view_uniform: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _view: (),
+        view_uniform: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         shape_meta: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -180,25 +180,31 @@ impl<P: PhaseItem, const I: usize, Shader: ParameterizedShader> RenderCommand<P>
 struct DrawShapeBatch<Shader: ParameterizedShader>(PhantomData<Shader>);
 impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBatch<Shader> {
     type Param = SRes<ExtractedShapes<Shader>>;
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Read<ShapeBatch>;
+    type ViewQuery = ();
+    type ItemQuery = Read<ShapeBatch>;
 
     fn render<'w>(
         _item: &P,
         _view: (),
-        batch: &'_ ShapeBatch,
+        batch: Option<&'_ ShapeBatch>,
         shape_meta: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let shape_meta = shape_meta.into_inner();
-        if let Some(buffer) = shape_meta.vertices.buffer() {
-            pass.set_vertex_buffer(0, buffer.slice(..));
-            pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
-            RenderCommandResult::Success
-        } else {
-            warn!("Render Fail {:?}", batch);
-            RenderCommandResult::Failure
+        if let Some(batch) = batch{
+            if let Some(buffer) = shape_meta.vertices.buffer() {
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
+                RenderCommandResult::Success
+            } else {
+                warn!("Render Fail {:?}", batch);
+                RenderCommandResult::Failure
+            }
         }
+        else{
+            return RenderCommandResult::Failure;
+        }
+
     }
 }
 
@@ -234,7 +240,6 @@ fn extract_shapes<'w, 's, 'a, Extractable: ExtractToShader>(
     >,
     resource_params: Extract<StaticSystemParam<Extractable::ResourceParams<'w>>>,
 ) {
-
     let resource = resource_params;
 
     for (view_visibility, params_item, transform) in shape_query.iter() {
@@ -403,7 +408,7 @@ fn join_adjacent_batches(
 
 fn cleanup_shapes<Shader: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<Shader>>,
-){
+) {
     extracted_shapes.vertices.clear();
 }
 

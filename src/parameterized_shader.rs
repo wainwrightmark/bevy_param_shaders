@@ -4,16 +4,15 @@ use crate::{prelude::Frame, shader_params::ShaderParams};
 use bevy::{
     ecs::{
         bundle::Bundle,
-        query::{ReadOnlyWorldQuery, WorldQuery},
+        query::{ReadOnlyQueryData, WorldQuery},
         system::{ReadOnlySystemParam, SystemParam},
-    },
-    reflect::TypeUuid,
+    }, reflect::TypePath,
 };
 
 /// A set of parameters that will extracted to ShaderParams and drawn with a particular shader
 pub trait ExtractToShader: Sync + Send + 'static {
     type Shader: ParameterizedShader;
-    type ParamsQuery<'a>: ReadOnlyWorldQuery;
+    type ParamsQuery<'a>: ReadOnlyQueryData;
     type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
@@ -24,7 +23,7 @@ pub trait ExtractToShader: Sync + Send + 'static {
 }
 
 /// A particular shader
-pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
+pub trait ParameterizedShader: Sync + Send + TypePath + 'static {
     type Params: ShaderParams;
 
     /// Get the body of the fragment shader fragment function
@@ -39,6 +38,8 @@ pub trait ParameterizedShader: Sync + Send + TypeUuid + 'static {
 
     /// The frame to use for this shader
     const FRAME: Frame;
+
+    const UUID: u128;
 }
 
 pub struct FragmentImport {

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.12.1", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_render",
   "bevy_asset", # needed for handle ids
@@ -16,14 +16,15 @@ bitflags = "2.4"
 radsort = "0.1.0"
 
 [dev-dependencies]
-bevy = { version = "0.12.1", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
   "bevy_winit",
   "x11", # github actions runners don't have libxkbcommon installed, so can't use wayland
   "file_watcher",
+  "multi-threaded"
 ] }
-bevy_pancam = "0.10"
+# bevy_pancam = "0.10" //TODO add back
 rand = "0.8"
-profiling-procmacros = "1.0.12"
+# profiling-procmacros = "1.0.15"
 
 [profile.dev]
 opt-level = 1

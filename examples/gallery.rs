@@ -1,5 +1,4 @@
-use bevy::{prelude::*, reflect::TypeUuid};
-use bevy_pancam::*;
+use bevy::{prelude::*,};
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -20,7 +19,7 @@ fn main() {
             ExtractToShaderPlugin::<EllipseShader>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
-            PanCamPlugin,
+            //PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -28,8 +27,8 @@ fn main() {
 
 macro_rules! define_sdf_shader {
     ($name:ident,$uuid:literal,$sdf:literal) => {
-        #[derive(Debug, TypeUuid, Default)]
-        #[uuid = $uuid]
+        #[derive(Debug, TypePath, Default)]
+
         pub struct $name;
 
         impl ExtractToShader for $name {
@@ -67,48 +66,50 @@ macro_rules! define_sdf_shader {
             }
 
             const FRAME: Frame = Frame::square(1.);
+
+            const UUID: u128 =$uuid;
         }
     };
 }
 
 define_sdf_shader!(
     BoxShader,
-    "051301eb-61ea-4eed-b067-4682feb028a0",
+    0x051301eb61ea4eedb0674682feb028a0,
     "smud::sd_rounded_box(in.pos, vec2<f32>(0.8, 0.8), vec4<f32>(0.2))"
 );
 define_sdf_shader!(
     CircleShader,
-    "77738d8e-8e3a-4c94-bfbc-49620a87918d",
+    0x77738d8e8e3a4c94bfbc49620a87918d,
     "smud::sd_circle(in.pos, 0.9)"
 );
 define_sdf_shader!(
     HeartShader,
-    "b3171ec4-2c7d-4095-bbd0-293754b33cd5",
+    0xb3171ec42c7d4095bbd0293754b33cd5,
     "smud::sd_heart(in.pos + vec2(0.0, 0.5))"
 );
 define_sdf_shader!(
     MoonShader,
-    "e3bda7c4-b689-4ac7-af9b-78ec0a49a2a3",
+    0xe3bda7c4b6894ac7af9b78ec0a49a2a3,
     "smud::sd_moon(in.pos, 0.5, 0.9, 0.9)"
 );
 define_sdf_shader!(
     PieShader,
-    "563bc173-593c-4261-9091-1881e07dea13",
+    0x563bc173593c426190911881e07dea13,
     "smud::sd_pie(in.pos, vec2<f32>(sin(0.5), cos(0.5)), 1.0)"
 );
 define_sdf_shader!(
     EggShader,
-    "e0d981eb-d382-4e10-bcc9-e4a7a234b746",
+    0xe0d981ebd3824e10bcc9e4a7a234b746,
     "smud::sd_egg(in.pos, 0.5, 0.25)"
 );
 define_sdf_shader!(
     RoundedXShader,
-    "aaf2157b-08f7-4164-b29a-194421403e26",
+    0xaaf2157b08f74164b29a194421403e26,
     "smud::sd_rounded_x(in.pos, 0.8, 0.2)"
 );
 define_sdf_shader!(
     EllipseShader,
-    "21de381f-01df-4513-8f3d-10da25954ab3",
+    0x21de381f01df45138f3d10da25954ab3,
     "smud::sd_ellipse(in.pos, 0.2,0.8)"
 );
 
@@ -190,5 +191,6 @@ fn setup(mut commands: Commands) {
         }
     }
 
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn((Camera2dBundle::default()));
 }

@@ -5,7 +5,7 @@ use bevy::{
     render::{
         globals::GlobalsUniform,
         render_resource::{
-            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+            BindGroupLayout,  BindGroupLayoutEntry, BindingType,
             BlendState, BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState,
             FrontFace, MultisampleState, PolygonMode, PrimitiveState, RenderPipelineDescriptor,
             ShaderStages, ShaderType, SpecializedRenderPipeline, TextureFormat, VertexAttribute,
@@ -66,15 +66,10 @@ impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
         }];
 
         let view_layout = if Shader::USE_TIME {
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                entries: ENTRIES_WITH_TIME,
-                label: Some("shape_view_layout"),
-            })
+            render_device.create_bind_group_layout("shape_view_layout"
+            , ENTRIES_WITH_TIME)
         } else {
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                entries: ENTRIES_WITHOUT_TIME,
-                label: Some("shape_view_layout"),
-            })
+            render_device.create_bind_group_layout("shape_view_layout", ENTRIES_WITHOUT_TIME)
         };
 
         Self {

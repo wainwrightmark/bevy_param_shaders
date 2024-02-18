@@ -1,9 +1,9 @@
-use bevy::reflect::TypeUuid;
+
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_pancam::*;
+
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -17,7 +17,7 @@ fn main() {
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
-            PanCamPlugin,
+            //PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         // .add_system_set(SystemSet::on_update(GameState::Running).with_system(update))
@@ -25,8 +25,8 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug, TypeUuid, Default)]
-#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+#[derive(Debug,  Default, TypePath)]
+
 pub struct BevyBirdShader;
 
 impl ExtractToShader for BevyBirdShader {
@@ -75,6 +75,8 @@ impl ParameterizedShader for BevyBirdShader {
         half_width: 295.0,
         half_height: 295.0,
     };
+
+    const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }
 
 #[repr(C)]
@@ -131,7 +133,8 @@ fn setup(mut commands: Commands) {
             ));
         }
     }
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn((Camera2dBundle::default()));
 }
 
 // fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {
