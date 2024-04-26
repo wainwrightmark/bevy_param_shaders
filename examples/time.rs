@@ -1,4 +1,4 @@
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::prelude::*;
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 
@@ -34,8 +34,7 @@ impl From<bevy::prelude::Color> for ColorParams {
 }
 
 #[repr(C)]
-#[derive(Debug, TypeUuid, Default)]
-#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+#[derive(Debug, TypePath, Default)]
 pub struct BevyMorphShader;
 
 impl ExtractToShader for BevyMorphShader {
@@ -83,6 +82,8 @@ impl ParameterizedShader for BevyMorphShader {
     }
 
     const FRAME: Frame = Frame::square(295.0);
+
+    const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }
 
 fn setup(mut commands: Commands) {

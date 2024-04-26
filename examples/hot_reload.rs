@@ -1,6 +1,8 @@
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::prelude::*;
 use bevy_param_shaders::prelude::*;
-/// Hot reload doesn't actually seem to work...
+//Hot reload works! Try modifying bevy.wgsl
+
+
 fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
@@ -14,8 +16,7 @@ fn main() {
         .run();
 }
 #[repr(C)]
-#[derive(Debug, TypeUuid, Default)]
-#[uuid = "6d310234-5019-4cd4-9f60-ebabd7dca30b"]
+#[derive(Debug, TypePath, Default)]
 pub struct BevyBirdShader;
 
 impl ExtractToShader for BevyBirdShader {
@@ -64,6 +65,8 @@ impl ParameterizedShader for BevyBirdShader {
         half_width: 295.0,
         half_height: 295.0,
     };
+
+    const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }
 
 #[repr(C)]

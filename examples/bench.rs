@@ -1,4 +1,3 @@
-
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
@@ -17,7 +16,7 @@ fn main() {
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
-            //PanCamPlugin,
+            bevy_pancam::PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         // .add_system_set(SystemSet::on_update(GameState::Running).with_system(update))
@@ -25,7 +24,7 @@ fn main() {
 }
 
 #[repr(C)]
-#[derive(Debug,  Default, TypePath)]
+#[derive(Debug, Default, TypePath)]
 
 pub struct BevyBirdShader;
 
@@ -97,9 +96,6 @@ impl From<bevy::prelude::Color> for ColorParams {
     }
 }
 
-#[derive(Component)]
-struct Index(usize);
-
 fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();
     let spacing = 800.0;
@@ -119,22 +115,18 @@ fn setup(mut commands: Commands) {
                 alpha: rng.gen_range(0.5..=1.0),
             };
 
-            commands.spawn((
-                ShaderBundle::<BevyBirdShader> {
-                    parameters: color.into(),
-                    transform: Transform::from_translation(Vec3::new(
-                        i as f32 * spacing - w as f32 * spacing / 2.,
-                        j as f32 * spacing - h as f32 * spacing / 2.,
-                        0.,
-                    )),
-                    ..default()
-                },
-                Index(i + j * w),
-            ));
+            commands.spawn((ShaderBundle::<BevyBirdShader> {
+                parameters: color.into(),
+                transform: Transform::from_translation(Vec3::new(
+                    i as f32 * spacing - w as f32 * spacing / 2.,
+                    j as f32 * spacing - h as f32 * spacing / 2.,
+                    0.,
+                )),
+                ..default()
+            },));
         }
     }
-    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
-    commands.spawn((Camera2dBundle::default()));
+    commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
 }
 
 // fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {

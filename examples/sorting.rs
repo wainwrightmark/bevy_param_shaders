@@ -1,4 +1,4 @@
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::prelude::*;
 use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
 
@@ -21,8 +21,7 @@ fn main() {
 
 macro_rules! define_sdf_shader {
     ($name:ident,$uuid:literal,$sdf:literal) => {
-        #[derive(Debug, TypeUuid, Default)]
-        #[uuid = $uuid]
+        #[derive(Debug, TypePath, Default)]
         pub struct $name;
 
         impl ExtractToShader for $name {
@@ -59,6 +58,8 @@ macro_rules! define_sdf_shader {
             }
 
             const FRAME: Frame = Frame::square(1.);
+
+            const UUID: u128 = $uuid;
         }
     };
 }
@@ -83,17 +84,17 @@ impl From<bevy::prelude::Color> for ColorParams {
 
 define_sdf_shader!(
     BoxShader,
-    "051301eb-61ea-4eed-b067-4682feb028a0",
+    0x051301eb61ea4eedb0674682feb028a0,
     "smud::sd_rounded_box(in.pos, vec2<f32>(0.9, 0.9), vec4<f32>(0.2))"
 );
 define_sdf_shader!(
     CircleShader,
-    "77738d8e-8e3a-4c94-bfbc-49620a87918d",
+    0x77738d8e8e3a4c94bfbc49620a87918d,
     "smud::sd_circle(in.pos, 0.8)"
 );
 define_sdf_shader!(
     HeartShader,
-    "b3171ec4-2c7d-4095-bbd0-293754b33cd5",
+    0xb3171ec42c7d4095bbd0293754b33cd5,
     "smud::sd_heart(in.pos + vec2(0.0, 0.5))"
 );
 

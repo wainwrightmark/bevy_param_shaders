@@ -1,41 +1,123 @@
-use bevy::{core::FrameCount, prelude::*, core_pipeline::bloom::BloomSettings};
+use bevy::{core::FrameCount, core_pipeline::bloom::BloomSettings, prelude::*, render::{camera::RenderTarget, render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages}}};
+use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 
+const WIDTH: u32 = 768;
+const HEIGHT: u32 = 768;
+
 fn main() {
+
+    let export_plugin = ImageExportPlugin::default();
+    let export_threads = export_plugin.threads.clone();
+
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: (WIDTH as f32, HEIGHT as f32).into(),
+                    ..default()
+                }),
+                ..default()
+            }),
             ExtractToShaderPlugin::<WordLineSegmentShader>::default(),
+            export_plugin
         ))
         .add_systems(Startup, setup)
-        //.insert_resource(ClearColor(Color::WHITE))
+        .add_systems(Startup, setup_camera)
+
+        .insert_resource(ClearColor(Color::WHITE))
         .init_resource::<WordLineGlobalTargets>()
         .insert_resource(WordLineGlobalValues::default())
         .add_systems(Update, do_updates)
         .add_systems(Update, transition_word_line.after(do_updates))
         .run();
+
+        export_threads.finish();
+
 }
 
 const SCALE_FACTOR: f32 = 100.0;
 
 //static DOWN_RIGHT: Vec2 = Vec2::new(0.5, 0.75f32.sqrt() * -1.0);
 
+
+fn setup_camera(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut export_sources: ResMut<Assets<ImageExportSource>>,
+) {
+    // Create an output texture.
+    let output_texture_handle = {
+        let size = Extent3d {
+            width: WIDTH,
+            height: HEIGHT,
+            ..default()
+        };
+        let mut export_texture = Image {
+            texture_descriptor: TextureDescriptor {
+                label: None,
+                size,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8UnormSrgb,
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: TextureUsages::COPY_DST
+                    | TextureUsages::COPY_SRC
+                    | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            },
+            ..default()
+        };
+        export_texture.resize(size);
+
+        images.add(export_texture)
+    };
+
+    commands
+        .spawn(Camera2dBundle {
+            transform: Transform::from_translation(5.0 * Vec3::Z),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn(Camera2dBundle {
+                camera: Camera {
+                    // Connect the output texture to a camera as a RenderTarget.
+                    target: RenderTarget::Image(output_texture_handle.clone()),
+                    ..default()
+                },
+                ..default()
+            });
+        });
+
+    // Spawn the ImageExportBundle to initiate the export of the output texture.
+    commands.spawn(ImageExportBundle {
+        source: export_sources.add(output_texture_handle),
+        settings: ImageExportSettings {
+            // Frames will be saved to "./out/[#####].png".
+            output_dir: "out".into(),
+            // Choose "exr" for HDR renders.
+            extension: "png".into(),
+        },
+    });
+}
+
 fn setup(mut commands: Commands) {
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                ..default()
-            },
+        // Camera2dBundle {
+        //     camera: Camera {
+        //         hdr: true,
+        //         ..default()
+        //     },
 
-            ..default()
-        },
+        //     ..default()
+        // },
         bevy::core_pipeline::bloom::BloomSettings {
-            intensity: 0.7,
+            intensity: 0.1,
+            composite_mode: bevy::core_pipeline::bloom::BloomCompositeMode::Additive,
             ..default()
         },
     ));
@@ -53,13 +135,13 @@ fn do_updates(
         *bloom_target = 0.7;
     }
 
-    for mut b in bloom.iter_mut(){
-        match b.intensity.total_cmp(&bloom_target){
-            std::cmp::Ordering::Less => b.intensity += 0.0015,
-            std::cmp::Ordering::Equal => {},
-            std::cmp::Ordering::Greater => b.intensity = *bloom_target,
-        }
-    }
+    // for mut b in bloom.iter_mut(){
+    //     match b.intensity.total_cmp(&bloom_target){
+    //         std::cmp::Ordering::Less => b.intensity += 0.0015,
+    //         std::cmp::Ordering::Equal => {},
+    //         std::cmp::Ordering::Greater => b.intensity = *bloom_target,
+    //     }
+    // }
 
     const PACE: u32 = 40;
     if frame_count.0 % PACE == 0 {
@@ -93,12 +175,17 @@ fn do_updates(
 
 
 fn spawn_shape(commands: &mut Commands, index: usize) {
-    let down_right = Vec2::new(0.5, 0.75f32.sqrt() * -1.0);
-    let up_right = Vec2::new(0.5, 0.75f32.sqrt());
+
+
+    let w = 0.4695;
+    let h = 0.883;
+
+    let down_right = Vec2::new(w, h * -1.0); //62 degrees 32 /7
+    let up_right = Vec2::new(w, h);
 
     let point2 = if index % 2 == 0 { down_right } else { up_right };
 
-    let mut position = Vec2::ZERO;
+    let mut position = Vec2{y: 0.0, x: w * -2.0} ;
 
     for x in 0..=index {
         let next_point = if x % 2 == 0 { down_right } else { up_right };
@@ -130,10 +217,10 @@ fn spawn_shape(commands: &mut Commands, index: usize) {
 
 fn index_to_color(index: usize) -> Color {
     match index {
-        0 | 1 => Color::rgba(0.05, 0.37, 0.29, 1.0),
-        2 => Color::rgba(0.05, 0.5, 0.27, 1.0),
-        3 => Color::rgba(0.05, 0.59, 0.26, 1.0),
-        _ => Color::rgba(0.11, 0.64, 0.23, 1.0),
+        0 | 1 => Color::rgb(0.09, 0.34, 0.27),
+        2 => Color::rgb(0.05, 0.43, 0.24),
+        3 => Color::rgb(0.01, 0.53, 0.22),
+        _ => Color::rgb(0.25, 0.67, 0.21),
     }
 }
 
@@ -262,12 +349,7 @@ impl From<bevy::prelude::Color> for ColorParams {
     }
 }
 
-const FULL_LINE_WIDTH: f32 = 0.5;
-const PULSED_LINE_WIDTH: f32 = FULL_LINE_WIDTH * 1.2;
-const ZERO_LINE_WIDTH: f32 = -0.01; //slightly below zero to prevent artifacts
-const LINE_WIDTH_DECREASE_SPEED: f32 = FULL_LINE_WIDTH * 1.2;
-const LINE_WIDTH_INCREASE_SPEED: f32 = FULL_LINE_WIDTH * 4.0;
-const LINE_WIDTH_PULSE_SPEED: f32 = FULL_LINE_WIDTH * 0.5;
+const FULL_LINE_WIDTH: f32 = 0.6;// 7.0 / 30.0;
 const PROGRESS_SPEED: f32 = 4.0;
 const RESET_PROGRESS: f32 = 0.00;
 
