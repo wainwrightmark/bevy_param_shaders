@@ -1,4 +1,4 @@
-use bevy::{prelude::*,};
+use bevy::prelude::*;
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -113,23 +113,6 @@ define_sdf_shader!(
     "smud::sd_ellipse(in.pos, 0.2,0.8)"
 );
 
-#[repr(C)]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
-)]
-pub struct ColorParams {
-    pub color: LinearRGBA,
-}
-
-impl ShaderParams for ColorParams {}
-
-impl From<bevy::prelude::Color> for ColorParams {
-    fn from(value: bevy::prelude::Color) -> Self {
-        Self {
-            color: value.into(),
-        }
-    }
-}
 
 #[derive(Component)]
 struct Index(usize);

@@ -78,23 +78,6 @@ impl ParameterizedShader for BevyBirdShader {
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }
 
-#[repr(C)]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
-)]
-pub struct ColorParams {
-    pub color: LinearRGBA,
-}
-
-impl ShaderParams for ColorParams {}
-
-impl From<bevy::prelude::Color> for ColorParams {
-    fn from(value: bevy::prelude::Color) -> Self {
-        Self {
-            color: value.into(),
-        }
-    }
-}
 
 fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();

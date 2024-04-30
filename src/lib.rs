@@ -53,6 +53,8 @@ pub mod shader_params;
 mod shader_pipeline;
 mod vertex_shader;
 
+pub mod primitives;
+
 /// Re-export of the essentials needed for rendering shapes
 ///
 /// Intended to be included at the top of your file to minimize the amount of import noise.

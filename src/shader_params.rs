@@ -96,3 +96,21 @@ impl std::ops::Add for LinearRGB {
         }
     }
 }
+
+
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, bevy::ecs::component::Component)]
+pub struct ColorParams {
+    pub color: LinearRGBA,
+}
+
+impl ShaderParams for ColorParams {}
+
+impl From<bevy::prelude::Color> for ColorParams {
+    fn from(value: bevy::prelude::Color) -> Self {
+        Self {
+            color: value.into(),
+        }
+    }
+}

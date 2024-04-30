@@ -331,23 +331,6 @@ impl ParameterizedShader for WordLineSegmentShader {
     const UUID: u128 = 0xa68d391613854269a5124561eccd664d;
 }
 
-#[repr(C)]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
-)]
-pub struct ColorParams {
-    pub color: LinearRGBA,
-}
-
-impl ShaderParams for ColorParams {}
-
-impl From<bevy::prelude::Color> for ColorParams {
-    fn from(value: bevy::prelude::Color) -> Self {
-        Self {
-            color: value.into(),
-        }
-    }
-}
 
 const FULL_LINE_WIDTH: f32 = 0.6;// 7.0 / 30.0;
 const PROGRESS_SPEED: f32 = 4.0;
