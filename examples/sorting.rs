@@ -57,7 +57,9 @@ macro_rules! define_sdf_shader {
                 .into_iter()
             }
 
-            const FRAME: Frame = Frame::square(1.);
+            fn frame_expression() -> impl Into<String> {
+                Frame::square(1.0)
+            }
 
             const UUID: u128 = $uuid;
         }

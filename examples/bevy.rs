@@ -18,7 +18,8 @@ fn main() {
 }
 
 
-#[derive(Debug, TypePath, Default)]
+#[repr(C)]
+#[derive(Debug, Default, TypePath)]
 pub struct BevyBirdShader;
 
 impl ExtractToShader for BevyBirdShader {
@@ -45,6 +46,10 @@ impl ParameterizedShader for BevyBirdShader {
         }
     }
 
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(295.0)
+    }
+
     fn imports() -> impl Iterator<Item = FragmentImport> {
         [
             FragmentImport {
@@ -62,11 +67,6 @@ impl ParameterizedShader for BevyBirdShader {
         ]
         .into_iter()
     }
-
-    const FRAME: Frame = Frame {
-        half_width: 295.0,
-        half_height: 295.0,
-    };
 
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }

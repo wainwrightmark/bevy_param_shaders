@@ -1,4 +1,4 @@
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
 
@@ -67,10 +67,9 @@ impl ParameterizedShader for BevyBirdShader {
         .into_iter()
     }
 
-    const FRAME: Frame = Frame {
-        half_width: 295.0,
-        half_height: 295.0,
-    };
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(295.0)
+    }
 
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }

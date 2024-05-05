@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -19,7 +20,7 @@ fn main() {
             ExtractToShaderPlugin::<EllipseShader>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
-            //PanCamPlugin,
+            PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -48,7 +49,6 @@ macro_rules! define_sdf_shader {
         impl ParameterizedShader for $name {
             type Params = ColorParams;
 
-
             fn fragment_body() -> impl Into<String> {
                 SDFAlphaCall {
                     sdf: $sdf,
@@ -65,9 +65,11 @@ macro_rules! define_sdf_shader {
                 .into_iter()
             }
 
-            const FRAME: Frame = Frame::square(1.);
+            fn frame_expression() -> impl Into<String> {
+                Frame::square(1.)
+            }
 
-            const UUID: u128 =$uuid;
+            const UUID: u128 = $uuid;
         }
     };
 }
@@ -114,9 +116,6 @@ define_sdf_shader!(
 );
 
 
-#[derive(Component)]
-struct Index(usize);
-
 fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();
     let spacing = 100.0;
@@ -154,7 +153,6 @@ fn setup(mut commands: Commands) {
                             parameters: color.into(),
                             ..default()
                         },
-                        Index(index),
                     ))
                 };
             }
@@ -174,6 +172,5 @@ fn setup(mut commands: Commands) {
         }
     }
 
-    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
-    commands.spawn((Camera2dBundle::default()));
+    commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }

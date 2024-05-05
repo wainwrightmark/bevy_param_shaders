@@ -21,7 +21,7 @@ fn main() {
 pub struct BlueSquare;
 
 impl ExtractToShader for BlueSquare {
-    type Shader = SquareShader;
+    type Shader = RectangleShader;
     type ParamsQuery<'a> = ();
     type ParamsBundle = ();
     type ResourceParams<'a> = ();
@@ -37,7 +37,7 @@ impl ExtractToShader for BlueSquare {
 pub struct RedSquare;
 
 impl ExtractToShader for RedSquare {
-    type Shader = SquareShader;
+    type Shader = RectangleShader;
     type ParamsQuery<'a> = ();
     type ParamsBundle = ();
     type ResourceParams<'a> = ();
@@ -53,9 +53,9 @@ impl ExtractToShader for RedSquare {
 #[repr(C)]
 #[derive(Debug, TypePath, Default)]
 
-pub struct SquareShader;
+pub struct RectangleShader;
 
-impl ParameterizedShader for SquareShader {
+impl ParameterizedShader for RectangleShader {
     type Params = ColorParams;
 
     fn fragment_body() -> impl Into<String> {
@@ -66,10 +66,12 @@ impl ParameterizedShader for SquareShader {
         [].into_iter()
     }
 
-    const FRAME: Frame = Frame {
-        half_width: 100.0,
-        half_height: 50.0,
-    };
+    fn frame_expression() -> impl Into<String> {
+        Frame {
+            half_width: 100.0,
+            half_height: 50.0,
+        }
+    }
 
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }

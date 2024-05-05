@@ -18,7 +18,6 @@ fn main() {
         .run();
 }
 
-
 impl ExtractToShader for CircleShader {
     type Shader = Self;
     type ParamsQuery<'a> = &'a ColorParams;
@@ -56,7 +55,9 @@ impl ParameterizedShader for CircleShader {
         .into_iter()
     }
 
-    const FRAME: Frame = Frame::square(1.0);
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(1.0)
+    }
 
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }

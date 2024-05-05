@@ -326,7 +326,9 @@ impl ParameterizedShader for WordLineSegmentShader {
         [WORDLINE_IMPORT, SIMPLE_FILL_IMPORT].into_iter()
     }
 
-    const FRAME: Frame = Frame::square(2.0); //TODO can this be lower?
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(2.0)
+    }
 
     const UUID: u128 = 0xa68d391613854269a5124561eccd664d;
 }

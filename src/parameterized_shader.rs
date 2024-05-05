@@ -1,19 +1,20 @@
 use std::fmt::Debug;
 
-use crate::{prelude::Frame, shader_params::ShaderParams};
+use crate::shader_params::ShaderParams;
 use bevy::{
     ecs::{
         bundle::Bundle,
         query::{ReadOnlyQueryData, WorldQuery},
         system::{ReadOnlySystemParam, SystemParam},
-    }, reflect::TypePath,
+    },
+    reflect::TypePath,
 };
 
 /// A set of parameters that will extracted to ShaderParams and drawn with a particular shader
 pub trait ExtractToShader: Sync + Send + 'static {
     type Shader: ParameterizedShader;
     type ParamsQuery<'a>: ReadOnlyQueryData;
-    type ParamsBundle: Bundle +  Clone + Debug + PartialEq;
+    type ParamsBundle: Bundle + Clone + Debug + PartialEq;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
     fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
@@ -31,13 +32,13 @@ pub trait ParameterizedShader: Sync + Send + TypePath + 'static {
     /// It should return `vec4<f32>` representing the color of the pixel
     fn fragment_body() -> impl Into<String>;
 
+    /// An expression that returns a `vec2<f32>` representing the half-width and half-height of the  frame
+    fn frame_expression() -> impl Into<String>;
+
     /// Get imports
     fn imports() -> impl Iterator<Item = FragmentImport>;
 
     const USE_TIME: bool = false;
-
-    /// The frame to use for this shader
-    const FRAME: Frame;
 
     const UUID: u128;
 }

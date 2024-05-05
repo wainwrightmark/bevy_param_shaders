@@ -1,6 +1,6 @@
-use bevy::{reflect::Struct};
+use bevy::reflect::Struct;
 
-use crate::{parameterized_shader::*, prelude::Frame};
+use crate::parameterized_shader::*;
 
 /// Creates a vertex shader with the correct number of arguments
 pub(crate) fn create_vertex_shader<Shader: ParameterizedShader>() -> bevy::render::render_resource::Shader {
@@ -20,10 +20,8 @@ pub(crate) fn create_vertex_shader<Shader: ParameterizedShader>() -> bevy::rende
     }
 
     let tp = Shader::type_path();
-    let Frame {
-        half_width,
-        half_height,
-    } = Shader::FRAME;
+
+    let frame_expression: String = Shader::frame_expression().into();
 
     let source = format!(
         r##"
@@ -58,7 +56,7 @@ fn vertex(
     @builtin(vertex_index) i: u32
 ) -> VertexOutput {{
 var out: VertexOutput;
-let frame = vec2<f32>({half_width}f,{half_height}f);
+let frame = {frame_expression};
 
 let x = select(-1., 1., i % 2u == 0u);
 let y = select(-1., 1., (i / 2u) % 2u == 0u);

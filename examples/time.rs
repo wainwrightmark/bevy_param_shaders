@@ -63,7 +63,9 @@ impl ParameterizedShader for BevyMorphShader {
         .into_iter()
     }
 
-    const FRAME: Frame = Frame::square(295.0);
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(295.0)
+    }
 
     const UUID: u128 = 0x6d31023450194cd49f60ebabd7dca30b;
 }

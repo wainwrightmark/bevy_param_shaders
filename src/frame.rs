@@ -22,3 +22,11 @@ impl Default for Frame {
         Self::DEFAULT
     }
 }
+
+impl Into<String> for Frame{
+    fn into(self) -> String {
+        let Frame { half_width, half_height }  = self;
+
+        format!("vec2<f32>({half_width}f, {half_height}f)")
+    }
+}

@@ -58,11 +58,13 @@ impl ParameterizedShader for RoundedRectShader {
         }
     }
 
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(1.0)
+    }
+
     fn imports() -> impl Iterator<Item = FragmentImport> {
         [imports::fill::SIMPLE_FILL, imports::sdf::ROUNDED_RECT].into_iter()
     }
-
-    const FRAME: Frame = Frame::square(1.0);
 
     const UUID: u128 = 0xa31d800c02a24db78aaf1caa2bd1dc37;
 }
@@ -187,11 +189,13 @@ impl ParameterizedShader for RoundedRectWithBorderShader {
         }
     }
 
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(1.0)
+    }
+
     fn imports() -> impl Iterator<Item = FragmentImport> {
         [imports::fill::FILL_WITH_OUTLINE, imports::sdf::ROUNDED_RECT].into_iter()
     }
-
-    const FRAME: Frame = Frame::square(1.0);
 
     const UUID: u128 = 0xdf3562db60d2471a81ac616fb633c7e7;
 }
@@ -260,11 +264,13 @@ impl ParameterizedShader for CircleShader {
         }
     }
 
+    fn frame_expression() -> impl Into<String> {
+        Frame::square(1.0)
+    }
+
     fn imports() -> impl Iterator<Item = FragmentImport> {
         [imports::fill::SIMPLE_FILL, imports::sdf::CIRCLE].into_iter()
     }
-
-    const FRAME: Frame = Frame::square(1.0);
 
     const UUID: u128 = 0x9a8df8ca0f854ccfb0a3ad366a6e8b4b;
 }
