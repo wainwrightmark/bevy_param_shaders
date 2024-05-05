@@ -23,7 +23,9 @@ pub struct ShaderBundle<Extract: ExtractToShader> {
     pub view_visibility: ViewVisibility,
 }
 
-impl<Extract: ExtractToShader> Default for ShaderBundle<Extract> {
+impl<Extract: ExtractToShader> Default for ShaderBundle<Extract>
+where <Extract as ExtractToShader>::ParamsBundle : Default
+{
     fn default() -> Self {
         Self {
             parameters: Default::default(),

@@ -13,7 +13,7 @@ use bevy::{
 pub trait ExtractToShader: Sync + Send + 'static {
     type Shader: ParameterizedShader;
     type ParamsQuery<'a>: ReadOnlyQueryData;
-    type ParamsBundle: Bundle + Default + Clone + Debug + PartialEq;
+    type ParamsBundle: Bundle +  Clone + Debug + PartialEq;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
     fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
