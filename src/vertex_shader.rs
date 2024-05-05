@@ -56,12 +56,13 @@ fn vertex(
     @builtin(vertex_index) i: u32
 ) -> VertexOutput {{
 var out: VertexOutput;
-let frame = {frame_expression};
+var frame = {frame_expression};
 
 let x = select(-1., 1., i % 2u == 0u);
 let y = select(-1., 1., (i / 2u) % 2u == 0u);
 let c = vertex.rotation.x;
 let s = vertex.rotation.y;
+
 let rotated = vec2<f32>(x * c - y * s, x * s + y * c);
 let pos = vertex.position + vec3<f32>(rotated * vertex.scale * frame, vertex.position.z);
 // Project the world position of the mesh into screen position

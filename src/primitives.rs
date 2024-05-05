@@ -59,7 +59,9 @@ impl ParameterizedShader for RoundedRectShader {
     }
 
     fn frame_expression() -> impl Into<String> {
-        Frame::square(1.0)
+        //Frame::square(4.0)
+        "vec2<f32>(max(vertex.width, vertex.height))"
+        //"vec2<f32>(vertex.width, vertex.height)"
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {
@@ -190,7 +192,7 @@ impl ParameterizedShader for RoundedRectWithBorderShader {
     }
 
     fn frame_expression() -> impl Into<String> {
-        Frame::square(1.0)
+        "vec2<f32>(max(vertex.width, vertex.height))"
     }
 
     fn imports() -> impl Iterator<Item = FragmentImport> {

@@ -25,8 +25,8 @@ fn setup(mut commands: Commands) {
             Color::ORANGE_RED.into(),
             ShaderRounding { rounding: 0.1 },
             ShaderProportions {
-                width: 1.0,
-                height: 1.0,
+                width: 0.75,
+                height: 1.5,
             },
         ),
         transform: Transform::from_scale(Vec3::splat(100.0)),
@@ -38,8 +38,8 @@ fn setup(mut commands: Commands) {
             Color::BLUE.with_a(0.7).into(),
             ShaderRounding { rounding: 0.1 },
             ShaderProportions {
-                width: 1.0,
-                height: 1.0,
+                width: 1.5,
+                height: 0.75,
             },
         ),
         transform: Transform::from_rotation(Quat::from_rotation_z(consts::FRAC_PI_4))
