@@ -11,7 +11,7 @@ bevy = { version = "0.13", default-features = false, features = [
   "bevy_render",
   "bevy_asset", # needed for handle ids
 ]}
-bytemuck = { version = "1.14", features = ["derive"] }
+bytemuck = { version = "1", features = ["derive"] }
 bitflags = "2.5"
 radsort = "0.1.0"
 
