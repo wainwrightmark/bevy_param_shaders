@@ -9,17 +9,14 @@ pub struct PrimitivesPlugin;
 
 impl Plugin for PrimitivesPlugin {
     fn build(&self, app: &mut App) {
-
-        embedded_asset!(app, "", "shaders/fill/fill_with_border.wgsl");
-        embedded_asset!(app, "", "shaders/fill/simple.wgsl");
-        embedded_asset!(app, "", "shaders/sdf/rounded_rect.wgsl");
-        embedded_asset!(app, "", "shaders/sdf/circle.wgsl");
+        embedded_asset!(app, "shaders/fill/fill_with_border.wgsl");
+        embedded_asset!(app, "shaders/fill/simple.wgsl");
+        embedded_asset!(app, "shaders/sdf/rounded_rect.wgsl");
+        embedded_asset!(app, "shaders/sdf/circle.wgsl");
 
         app.add_plugins(ExtractToShaderPlugin::<RoundedRectShaderExtraction>::default());
         app.add_plugins(ExtractToShaderPlugin::<RoundedRectWithBorderShader>::default());
         app.add_plugins(ExtractToShaderPlugin::<CircleShader>::default());
-
-
     }
 }
 
@@ -276,7 +273,6 @@ impl ParameterizedShader for CircleShader {
 
     const UUID: u128 = 0x9a8df8ca0f854ccfb0a3ad366a6e8b4b;
 }
-
 
 pub mod imports {
 
