@@ -14,12 +14,12 @@ use bevy::{
 pub trait ExtractToShader: Sync + Send + 'static {
     type Shader: ParameterizedShader;
     type ParamsQuery<'a>: ReadOnlyQueryData;
-    type ParamsBundle: Bundle + Clone + Debug + PartialEq;
+    type ParamsBundle: Bundle;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
-    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
-        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'w1>,
-        resource: &'r <Self::ResourceParams<'w> as SystemParam>::Item<'w2, 's2>,
+    fn get_params<'a>(
+        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'_>,
+        resource: & <Self::ResourceParams<'_> as SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params;
 }
 

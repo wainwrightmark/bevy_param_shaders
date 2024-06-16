@@ -1,5 +1,16 @@
-use bevy::{core::FrameCount, core_pipeline::bloom::BloomSettings, prelude::*, render::{camera::RenderTarget, render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages}}};
-use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource};
+use bevy::{
+    core::FrameCount,
+    prelude::*,
+    render::{
+        camera::RenderTarget,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+    },
+};
+use bevy_image_export::{
+    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
+};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 
@@ -7,7 +18,6 @@ const WIDTH: u32 = 768;
 const HEIGHT: u32 = 768;
 
 fn main() {
-
     let export_plugin = ImageExportPlugin::default();
     let export_threads = export_plugin.threads.clone();
 
@@ -24,11 +34,10 @@ fn main() {
                 ..default()
             }),
             ExtractToShaderPlugin::<WordLineSegmentShader>::default(),
-            export_plugin
+            export_plugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Startup, setup_camera)
-
         .insert_resource(ClearColor(Color::WHITE))
         .init_resource::<WordLineGlobalTargets>()
         .insert_resource(WordLineGlobalValues::default())
@@ -36,14 +45,12 @@ fn main() {
         .add_systems(Update, transition_word_line.after(do_updates))
         .run();
 
-        export_threads.finish();
-
+    export_threads.finish();
 }
 
 const SCALE_FACTOR: f32 = 100.0;
 
 //static DOWN_RIGHT: Vec2 = Vec2::new(0.5, 0.75f32.sqrt() * -1.0);
-
 
 fn setup_camera(
     mut commands: Commands,
@@ -128,20 +135,11 @@ fn do_updates(
     mut entities: Query<(Entity, &mut WordLineDirection, &mut ShaderSecondColor)>,
     frame_count: Res<FrameCount>,
     mut targets: ResMut<WordLineGlobalTargets>,
-    mut bloom: Query<&mut BloomSettings>,
-    mut bloom_target: Local<f32>
+    mut bloom_target: Local<f32>,
 ) {
-    if *bloom_target == 0.0{
+    if *bloom_target == 0.0 {
         *bloom_target = 0.7;
     }
-
-    // for mut b in bloom.iter_mut(){
-    //     match b.intensity.total_cmp(&bloom_target){
-    //         std::cmp::Ordering::Less => b.intensity += 0.0015,
-    //         std::cmp::Ordering::Equal => {},
-    //         std::cmp::Ordering::Greater => b.intensity = *bloom_target,
-    //     }
-    // }
 
     const PACE: u32 = 40;
     if frame_count.0 % PACE == 0 {
@@ -154,16 +152,10 @@ fn do_updates(
             targets.target_progress = ProgressTarget::ResetThenIncreaseToOne;
             spawn_shape(&mut commands, index as usize);
             *bloom_target = 0.7 + (index as f32 * 0.01);
-        }
-        else if index == 4{
+        } else if index == 4 {
             *bloom_target = 1.00;
-        }
-        else if index == 5{
-
-        }
-
-
-         else if index == 10 {
+        } else if index == 5 {
+        } else if index == 10 {
             for (e, _, _) in entities.iter() {
                 commands.entity(e).despawn_recursive();
             }
@@ -172,11 +164,7 @@ fn do_updates(
     }
 }
 
-
-
 fn spawn_shape(commands: &mut Commands, index: usize) {
-
-
     let w = 0.4695;
     let h = 0.883;
 
@@ -185,7 +173,10 @@ fn spawn_shape(commands: &mut Commands, index: usize) {
 
     let point2 = if index % 2 == 0 { down_right } else { up_right };
 
-    let mut position = Vec2{y: 0.0, x: w * -2.0} ;
+    let mut position = Vec2 {
+        y: 0.0,
+        x: w * -2.0,
+    };
 
     for x in 0..=index {
         let next_point = if x % 2 == 0 { down_right } else { up_right };
@@ -333,8 +324,7 @@ impl ParameterizedShader for WordLineSegmentShader {
     const UUID: u128 = 0xa68d391613854269a5124561eccd664d;
 }
 
-
-const FULL_LINE_WIDTH: f32 = 0.6;// 7.0 / 30.0;
+const FULL_LINE_WIDTH: f32 = 0.6; // 7.0 / 30.0;
 const PROGRESS_SPEED: f32 = 4.0;
 const RESET_PROGRESS: f32 = 0.00;
 
@@ -367,11 +357,8 @@ impl Default for WordLineGlobalTargets {
 
 #[derive(Debug, Resource, PartialEq)]
 enum ProgressTarget {
-    One,
     IncreaseToOne,
-    DecreaseToZero,
     ResetThenIncreaseToOne,
-    OneThenDecreaseToZero,
 }
 
 fn transition_word_line(
@@ -381,27 +368,17 @@ fn transition_word_line(
 ) {
     let progress_change = time.delta_seconds() * PROGRESS_SPEED;
 
-
     let progress = match targets.target_progress {
         ProgressTarget::IncreaseToOne => (values.progress + progress_change).min(1.0),
-        ProgressTarget::DecreaseToZero => (values.progress - progress_change).max(0.0),
         ProgressTarget::ResetThenIncreaseToOne => {
             targets.target_progress = ProgressTarget::IncreaseToOne;
             RESET_PROGRESS // + progress_change.min(1.0)
-        }
-        ProgressTarget::OneThenDecreaseToZero => {
-            targets.target_progress = ProgressTarget::DecreaseToZero;
-            1.0
-        }
-        ProgressTarget::One => {
-            targets.target_progress = ProgressTarget::IncreaseToOne;
-            1.0
         }
     };
 
     let new_values = WordLineGlobalValues {
         progress,
-        line_width: FULL_LINE_WIDTH
+        line_width: FULL_LINE_WIDTH,
     };
 
     values.set_if_neq(new_values);

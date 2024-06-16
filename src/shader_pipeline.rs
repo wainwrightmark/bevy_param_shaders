@@ -31,7 +31,7 @@ impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
-        const ENTRIES_WITH_TIME: &'static [BindGroupLayoutEntry] = &[
+        const ENTRIES_WITH_TIME: &[BindGroupLayoutEntry] = &[
             BindGroupLayoutEntry {
                 binding: 0,
                 visibility: ShaderStages::VERTEX_FRAGMENT,
@@ -54,7 +54,7 @@ impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
             },
         ];
 
-        const ENTRIES_WITHOUT_TIME: &'static [BindGroupLayoutEntry] = &[BindGroupLayoutEntry {
+        const ENTRIES_WITHOUT_TIME: &[BindGroupLayoutEntry] = &[BindGroupLayoutEntry {
             binding: 0,
             visibility: ShaderStages::VERTEX_FRAGMENT,
             ty: BindingType::Buffer {

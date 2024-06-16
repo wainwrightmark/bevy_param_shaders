@@ -193,7 +193,7 @@ impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBa
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let shape_meta = shape_meta.into_inner();
-        if let Some(batch) = batch{
+        if let Some(batch) = batch {
             if let Some(buffer) = shape_meta.vertices.buffer() {
                 pass.set_vertex_buffer(0, buffer.slice(..));
                 pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
@@ -202,11 +202,9 @@ impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBa
                 warn!("Render Fail {:?}", batch);
                 RenderCommandResult::Failure
             }
+        } else {
+            RenderCommandResult::Failure
         }
-        else{
-            return RenderCommandResult::Failure;
-        }
-
     }
 }
 

@@ -23,9 +23,9 @@ impl Default for Frame {
     }
 }
 
-impl Into<String> for Frame{
-    fn into(self) -> String {
-        let Frame { half_width, half_height }  = self;
+impl From<Frame> for String{
+    fn from(val: Frame) -> Self {
+        let Frame { half_width, half_height }  = val;
 
         format!("vec2<f32>({half_width}f, {half_height}f)")
     }

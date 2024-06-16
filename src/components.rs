@@ -30,9 +30,7 @@ impl<Extract: ExtractToShader> Copy for ShaderUsage<Extract> {}
 
 impl<Extract: ExtractToShader> Clone for ShaderUsage<Extract> {
     fn clone(&self) -> Self {
-        Self {
-            phantom: self.phantom.clone(),
-        }
+        *self
     }
 }
 
