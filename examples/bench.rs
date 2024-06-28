@@ -16,7 +16,7 @@ fn main() {
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
-            bevy_pancam::PanCamPlugin,
+            //bevy_pancam::PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         // .add_system_set(SystemSet::on_update(GameState::Running).with_system(update))
@@ -88,12 +88,12 @@ fn setup(mut commands: Commands) {
 
     for i in 0..w {
         for j in 0..h {
-            let color = Color::Rgba {
+            let color = Color::Srgba(Srgba {
                 red: rng.gen_range(0.1..=1.0),
                 green: rng.gen_range(0.1..=1.0),
                 blue: rng.gen_range(0.1..=1.0),
                 alpha: rng.gen_range(0.5..=1.0),
-            };
+            });
 
             commands.spawn((ShaderBundle::<BevyBirdShader> {
                 parameters: color.into(),
@@ -106,7 +106,8 @@ fn setup(mut commands: Commands) {
             },));
         }
     }
-    commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
+    //commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
+    commands.spawn((Camera2dBundle::default()));
 }
 
 // fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {

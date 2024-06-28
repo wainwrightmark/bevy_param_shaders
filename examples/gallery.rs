@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_pancam::{PanCam, PanCamPlugin};
+//use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -20,7 +20,7 @@ fn main() {
             ExtractToShaderPlugin::<EllipseShader>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
-            PanCamPlugin,
+            //PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -128,12 +128,12 @@ fn setup(mut commands: Commands) {
         for j in 0..h {
             let index = i + j * w;
 
-            let color = Color::Rgba {
+            let color = Color::Srgba(Srgba {
                 red: rng.gen_range(0.1..=1.0),
                 green: rng.gen_range(0.1..=1.0),
                 blue: rng.gen_range(0.1..=1.0),
                 alpha: rng.gen_range(0.5..=1.0),
-            };
+            });
 
             let transform = Transform::from_translation(Vec3::new(
                 i as f32 * spacing - w as f32 * spacing / 2.,
@@ -172,5 +172,6 @@ fn setup(mut commands: Commands) {
         }
     }
 
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn((Camera2dBundle::default()));
+    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }

@@ -1,11 +1,8 @@
 use std::any::TypeId;
 
-use bevy::{math::Vec4, render::render_resource::VertexFormat};
+use bevy::{color::LinearRgba, math::Vec4, render::render_resource::VertexFormat};
 
-use crate::{
-    prelude::*,
-    shader_params::{LinearRGB, LinearRGBA},
-};
+use crate::shader_params::*;
 
 pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32) -> String {
     let mut result = "".to_string();
@@ -74,10 +71,8 @@ pub(crate) fn get_vertex_format(type_id: TypeId) -> Option<VertexFormat> {
         Some(VertexFormat::Float32x3)
     } else if type_id == TypeId::of::<Vec4>() {
         Some(VertexFormat::Float32x4)
-    } else if type_id == TypeId::of::<LinearRGBA>() {
+    } else if type_id == TypeId::of::<LinearRgba>() {
         Some(VertexFormat::Float32x4)
-    } else if type_id == TypeId::of::<LinearRGB>() {
-        Some(VertexFormat::Float32x3)
     } else {
         None
     }

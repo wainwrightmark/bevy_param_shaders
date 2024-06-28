@@ -12,25 +12,25 @@ use bevy::{
             StaticSystemParam, SystemParamItem,
         },
     },
-    math::Vec3Swizzles,
+    math::{FloatOrd, Vec3Swizzles},
     prelude::*,
     render::{
         globals::GlobalsBuffer,
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            RenderPhase, SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
         },
         render_resource::{
-            BindGroup, BindGroupEntries, BufferUsages, BufferVec, PipelineCache, PrimitiveTopology,
-            SpecializedRenderPipelines,
+            BindGroup, BindGroupEntries, BufferUsages, PipelineCache, PrimitiveTopology,
+            RawBufferVec, SpecializedRenderPipelines,
         },
         renderer::{RenderDevice, RenderQueue},
         view::{ExtractedView, ViewUniformOffset, ViewUniforms},
         Extract, Render, RenderApp, RenderSet,
     },
-    utils::FloatOrd,
 };
-use bytemuck::{Pod, Zeroable};
+use bundle::ShaderCheckVisibility;
+use bytemuck::{NoUninit, Zeroable};
 use pipeline_key::PipelineKey;
 use shader_loading::*;
 
@@ -79,7 +79,7 @@ impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable>
         //todo in debug mode add a system to check that all shader plugins are registered
         //todo in debug mode add a system to check that all shaders have the right parameters
 
-        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+        if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
         };
     }
@@ -96,12 +96,19 @@ struct ParameterShadersPlugin;
 
 impl Plugin for ParameterShadersPlugin {
     fn build(&self, app: &mut App) {
-        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+        if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(
                 Render,
                 join_adjacent_batches.in_set(RenderSet::PrepareBindGroups),
             );
         };
+
+        //todo improve check visibility
+        app.add_systems(
+            PostUpdate,
+            bevy::render::view::check_visibility::<With<ShaderCheckVisibility>>
+                .in_set(bevy::render::view::VisibilitySystems::CheckVisibility),
+        );
     }
 }
 
@@ -123,7 +130,7 @@ impl<Shader: ParameterizedShader> Plugin for ParamShaderPlugin<Shader> {
         //todo in debug mode add a system to check that all shader plugins are registered
         //todo in debug mode add a system to check that all shaders have the right parameters
 
-        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+        if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
                 .add_render_command::<Transparent2d, DrawShaderShape<Shader>>()
                 .init_resource::<ExtractedShapes<Shader>>()
@@ -210,7 +217,7 @@ impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBa
 
 #[derive(Resource)]
 struct ExtractedShapes<Shader: ParameterizedShader> {
-    vertices: BufferVec<ShapeVertex<Shader::Params>>,
+    vertices: RawBufferVec<ShapeVertex<Shader::Params>>,
     view_bind_group: Option<BindGroup>,
 }
 
@@ -218,7 +225,7 @@ impl<Shader: ParameterizedShader> Default for ExtractedShapes<Shader> {
     fn default() -> Self {
         Self {
             // shapes: Default::default(),
-            vertices: BufferVec::new(BufferUsages::VERTEX),
+            vertices: RawBufferVec::new(BufferUsages::VERTEX),
             view_bind_group: None,
         }
     }
@@ -269,7 +276,8 @@ fn queue_shapes<Shader: ParameterizedShader>(
     pipeline_cache: ResMut<PipelineCache>,
     msaa: Res<Msaa>,
     extracted_shapes: Res<ExtractedShapes<Shader>>,
-    mut views: Query<(&mut RenderPhase<Transparent2d>, &ExtractedView)>,
+    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
+    views: Query<(Entity, &ExtractedView)>,
 ) {
     let draw_function = draw_functions
         .read()
@@ -277,7 +285,10 @@ fn queue_shapes<Shader: ParameterizedShader>(
         .unwrap();
 
     // Iterate over each view (a camera is a view)
-    for (mut transparent_phase, view) in &mut views {
+    for (view_entity, view) in views.iter() {
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+            continue;
+        };
         // todo: bevy_sprite does some hdr stuff, should we?
         // let mut view_key = SpritePipelineKey::from_hdr(view.hdr) | msaa_key;
 
@@ -316,7 +327,7 @@ fn queue_shapes<Shader: ParameterizedShader>(
                 entity,
                 sort_key,
                 batch_range: 0..1,
-                dynamic_offset: None,
+                extra_index: PhaseItemExtraIndex::NONE,
             });
         }
     }
@@ -352,16 +363,18 @@ fn prepare_shapes<Shader: ParameterizedShader>(
         ));
     }
 
+    //info!("Preparing {} shapes", extracted_shapes.vertices.len());
+
     extracted_shapes
         .vertices
         .write_buffer(&render_device, &render_queue);
 }
 
 fn join_adjacent_batches(
-    mut phases: Query<&mut RenderPhase<Transparent2d>>,
+    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
     mut batches: Query<&mut ShapeBatch>,
 ) {
-    for mut transparent_phase in &mut phases {
+    for transparent_phase in transparent_render_phases.0.values_mut() {
         let mut index = 0;
 
         while let Some(item) = transparent_phase.items.get(index) {
@@ -409,6 +422,7 @@ fn join_adjacent_batches(
 fn cleanup_shapes<Shader: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<Shader>>,
 ) {
+    //info!("Clearing {} shapes", extracted_shapes.vertices.len());
     extracted_shapes.vertices.clear();
 }
 
@@ -444,7 +458,7 @@ impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
     }
 }
 
-unsafe impl<PARAMS: ShaderParams> Pod for ShapeVertex<PARAMS> {}
+unsafe impl<PARAMS: ShaderParams> NoUninit for ShapeVertex<PARAMS> {}
 
 #[derive(Component, Eq, PartialEq, Clone, Debug)]
 pub(crate) struct ShapeBatch {

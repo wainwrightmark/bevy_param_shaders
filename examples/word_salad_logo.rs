@@ -282,8 +282,8 @@ pub struct WordLineSegmentShaderParams {
     pub line_width: f32,
     pub point2: Vec2,
     pub progress: f32,
-    pub color1: LinearRGBA,
-    pub color2: LinearRGBA,
+    pub color1: LinearRgba,
+    pub color2: LinearRgba,
 }
 
 impl ShaderParams for WordLineSegmentShaderParams {}

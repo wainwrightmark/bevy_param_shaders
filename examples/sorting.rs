@@ -1,5 +1,5 @@
-use bevy::prelude::*;
-use bevy_pancam::*;
+use bevy::{color::palettes, prelude::*};
+//use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
 
 fn main() {
@@ -7,13 +7,13 @@ fn main() {
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
+        .insert_resource(ClearColor(Color::srgb(0.7, 0.8, 0.7)))
         .add_plugins((
             DefaultPlugins,
             ExtractToShaderPlugin::<CircleShader>::default(),
             ExtractToShaderPlugin::<BoxShader>::default(),
             ExtractToShaderPlugin::<HeartShader>::default(),
-            PanCamPlugin,
+            //PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -88,9 +88,9 @@ fn setup(mut commands: Commands) {
     let w = 5;
     commands.insert_resource(ClearColor(Color::NONE));
 
-    let box_color = Color::BLUE;
-    let circle_color = Color::GREEN;
-    let heart_color = Color::RED;
+    let box_color = palettes::css::BLUE;
+    let circle_color = palettes::css::GREEN;
+    let heart_color = palettes::css::RED;
 
     for i in 0..w {
         macro_rules! spawn_bundle {
@@ -130,14 +130,15 @@ fn setup(mut commands: Commands) {
             };
         }
 
-        let box_color = Color::BLUE;
-        let circle_color = Color::GREEN;
-        let heart_color = Color::RED;
+        let box_color = palettes::css::BLUE;
+        let circle_color = palettes::css::GREEN;
+        let heart_color = palettes::css::RED;
 
         spawn_bundle!(BoxShader, 1.0, box_color);
         spawn_bundle!(CircleShader, 2.0, circle_color);
         spawn_bundle!(HeartShader, 3.0, heart_color);
     }
 
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn(Camera2dBundle::default());
 }

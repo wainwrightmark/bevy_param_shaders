@@ -22,7 +22,7 @@ fn main() {
 fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle::<RoundedRectShaderExtraction> {
         parameters: (
-            Color::ORANGE_RED.into(),
+            bevy::color::palettes::css::ORANGE_RED.into(),
             ShaderRounding { rounding: 0.1 },
             ShaderProportions {
                 width: 0.75,
@@ -30,12 +30,17 @@ fn setup(mut commands: Commands) {
             },
         ),
         transform: Transform::from_scale(Vec3::splat(100.0)),
+        visibility: Visibility::Visible,
+        view_visibility: ViewVisibility::default(),
+        inherited_visibility: InheritedVisibility::VISIBLE,
         ..Default::default()
     });
 
+
+
     commands.spawn(ShaderBundle::<RoundedRectShaderExtraction> {
         parameters: (
-            Color::BLUE.with_a(0.7).into(),
+            bevy::color::palettes::css::BLUE.with_alpha(0.7).into(),
             ShaderRounding { rounding: 0.1 },
             ShaderProportions {
                 width: 1.5,

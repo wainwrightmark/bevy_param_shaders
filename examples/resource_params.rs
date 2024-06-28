@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{color::palettes, prelude::*};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 
@@ -26,7 +26,7 @@ fn main() {
     Debug, Clone, Copy, PartialEq, Default, Reflect, bytemuck::Pod, bytemuck::Zeroable, Component,
 )]
 pub struct MorphParams {
-    pub color: LinearRGBA,
+    pub color: LinearRgba,
     pub time: f32,
 }
 
@@ -34,13 +34,13 @@ impl ShaderParams for MorphParams {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Resource)]
 pub struct ColorResource {
-    pub color: LinearRGBA,
+    pub color: LinearRgba,
 }
 
 impl Default for ColorResource {
     fn default() -> Self {
         Self {
-            color: Color::ORANGE_RED.into(),
+            color: palettes::css::ORANGE_RED.into(),
         }
     }
 }

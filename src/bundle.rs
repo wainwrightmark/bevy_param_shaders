@@ -13,6 +13,8 @@ pub struct ShaderBundle<Extract: ExtractToShader> {
     pub transform: Transform,
     /// Indicates the shader to use
     pub shape: ShaderUsage<Extract>,
+    /// Indicates that the shader visibility should be checked
+    pub shader_check_visibility: ShaderCheckVisibility,
     /// A compute transform
     pub global_transform: GlobalTransform,
     /// User indication of whether an entity is visible
@@ -22,6 +24,9 @@ pub struct ShaderBundle<Extract: ExtractToShader> {
     /// The view visibility of the entity.
     pub view_visibility: ViewVisibility,
 }
+
+#[derive(Debug, Component, PartialEq, Eq, Clone, Copy)]
+pub struct ShaderCheckVisibility;
 
 impl<Extract: ExtractToShader<ParamsBundle: Debug>> Debug for ShaderBundle<Extract> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -39,6 +44,7 @@ impl<Extract: ExtractToShader<ParamsBundle: Clone>> Clone for ShaderBundle<Extra
             visibility: self.visibility,
             inherited_visibility: self.inherited_visibility,
             view_visibility: self.view_visibility,
+            shader_check_visibility: ShaderCheckVisibility
         }
     }
 }
@@ -70,6 +76,7 @@ where
             visibility: Default::default(),
             inherited_visibility: Default::default(),
             view_visibility: Default::default(),
+            shader_check_visibility: ShaderCheckVisibility
         }
     }
 }

@@ -31,8 +31,8 @@ pub struct RoundedRectShaderExtraction;
 
 impl ExtractToShader for RoundedRectShaderExtraction {
     type Shader = RoundedRectShader;
-    type ParamsQuery<'a> = (&'a ShaderColor, &'a ShaderRounding, &'a ShaderProportions);
-    type ParamsBundle = (ShaderColor, ShaderRounding, ShaderProportions);
+    type ParamsQuery<'a> = (&'a ShaderColor<0>, &'a ShaderRounding, &'a ShaderProportions);
+    type ParamsBundle = (ShaderColor<0>, ShaderRounding, ShaderProportions);
     type ResourceParams<'w> = ();
 
     fn get_params(
@@ -74,7 +74,7 @@ impl ParameterizedShader for RoundedRectShader {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
 pub struct RoundedRectShaderParams {
-    pub color: LinearRGBA,
+    pub color: LinearRgba,
     // Width as a proportion of scale in range 0..=1.0
     pub width: f32,
 
@@ -85,27 +85,32 @@ pub struct RoundedRectShaderParams {
 
 impl ShaderParams for RoundedRectShaderParams {}
 
+
+/// A color used by a shader
+/// Some shaders use more than one color, different colors used will be determined by the index parameter
 #[derive(Debug, Clone, Copy, PartialEq, Component, Default)]
-pub struct ShaderColor {
-    pub color: Color,
+pub struct ShaderColor<const INDEX: usize> {
+    pub color: LinearRgba,
 }
 
-impl From<Color> for ShaderColor {
+impl<const INDEX :usize> From<Color> for ShaderColor<INDEX> {
     fn from(color: Color) -> Self {
+        Self { color: color.to_linear() }
+    }
+}
+
+impl<const INDEX :usize> From<LinearRgba> for ShaderColor<INDEX> {
+    fn from(color: LinearRgba) -> Self {
         Self { color }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Component, Default)]
-pub struct ShaderSecondColor {
-    pub color: Color,
-}
-
-impl From<Color> for ShaderSecondColor {
-    fn from(color: Color) -> Self {
-        Self { color }
+impl<const INDEX :usize> From<Srgba> for ShaderColor<INDEX> {
+    fn from(color: Srgba) -> Self {
+        Self { color: Color::Srgba(color).to_linear() }
     }
 }
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
 pub struct ShaderRounding {
@@ -157,12 +162,12 @@ impl ExtractToShader for RoundedRectWithBorderShader {
     type Shader = Self;
 
     type ParamsQuery<'a> = (
-        &'a ShaderColor,
+        &'a ShaderColor<0>,
         &'a ShaderRounding,
         &'a ShaderProportions,
         &'a ShaderBorder,
     );
-    type ParamsBundle = (ShaderColor, ShaderRounding, ShaderProportions, ShaderBorder);
+    type ParamsBundle = (ShaderColor<0>, ShaderRounding, ShaderProportions, ShaderBorder);
     type ResourceParams<'w> = ();
 
     fn get_params(
@@ -209,26 +214,26 @@ pub struct RoundedRectWithBorderShaderParams {
     pub height: f32,
     pub rounding: f32,
 
-    pub color: LinearRGBA,
-    pub border_color: LinearRGBA,
+    pub color: LinearRgba,
+    pub border_color: LinearRgba,
     pub border: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Component, Default)]
 pub struct ShaderBorder {
-    pub border_color: Color,
+    pub border_color: LinearRgba,
     pub border: f32,
 }
 
 impl ShaderBorder {
     pub const NONE: Self = ShaderBorder {
-        border_color: Color::NONE,
+        border_color: LinearRgba::NONE,
         border: 0.0,
     };
 
     pub fn from_color(color: Color) -> Self {
         Self {
-            border_color: color,
+            border_color: color.to_linear(),
             border: 0.005,
         }
     }
@@ -242,17 +247,15 @@ pub struct CircleShader;
 
 impl ExtractToShader for CircleShader {
     type Shader = Self;
-    type ParamsQuery<'a> = &'a ShaderColor;
-    type ParamsBundle = ShaderColor;
+    type ParamsQuery<'a> = &'a ShaderColor<0>;
+    type ParamsBundle = ShaderColor<0>;
     type ResourceParams<'w> = ();
 
     fn get_params(
         query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
-        ColorParams {
-            color: query_item.color.into(),
-        }
+        ColorParams{color: query_item.color}
     }
 }
 

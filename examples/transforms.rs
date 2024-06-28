@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_pancam::{PanCam, PanCamPlugin};
+//use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
 
 /// This example just shows that transforms work
@@ -9,11 +9,11 @@ fn main() {
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
         .insert_resource(Msaa::Off)
-        .insert_resource(ClearColor(Color::rgb(0.7, 0.8, 0.7)))
+        .insert_resource(ClearColor(Color::srgb(0.7, 0.8, 0.7)))
         .add_plugins((
             DefaultPlugins,
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
-            PanCamPlugin,
+            //PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -85,7 +85,7 @@ fn setup(mut commands: Commands) {
     commands
         .spawn(ShaderBundle {
             shape: ShaderUsage::<BevyBirdShader>::default(),
-            parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+            parameters: Color::srgb(0.36, 0.41, 0.45).into(),
 
             ..default()
         })
@@ -94,19 +94,20 @@ fn setup(mut commands: Commands) {
                 .spawn(ShaderBundle {
                     transform,
                     shape: ShaderUsage::<BevyBirdShader>::default(),
-                    parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+                    parameters: Color::srgb(0.36, 0.41, 0.45).into(),
                     ..default()
                 })
                 .with_children(|parent| {
                     parent.spawn(ShaderBundle {
                         transform,
                         shape: ShaderUsage::<BevyBirdShader>::default(),
-                        parameters: Color::rgb(0.36, 0.41, 0.45).into(),
+                        parameters: Color::srgb(0.36, 0.41, 0.45).into(),
 
                         ..default()
                     });
                 });
         });
 
-    commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn(Camera2dBundle::default());
 }

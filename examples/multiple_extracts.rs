@@ -30,7 +30,9 @@ impl ExtractToShader for BlueSquare {
         _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
-        Color::BLUE.with_a(0.5).into()
+        ColorParams{
+            color: bevy::color::palettes::css::BLUE.with_alpha(0.5).into()
+        }
     }
 }
 
@@ -46,7 +48,10 @@ impl ExtractToShader for RedSquare {
         _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
-        Color::RED.with_a(0.5).into()
+        ColorParams{
+            color: bevy::color::palettes::css::RED.with_alpha(0.5).into()
+        }
+
     }
 }
 

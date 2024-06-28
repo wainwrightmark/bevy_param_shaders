@@ -20,7 +20,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(ShaderBundle {
         shape: ShaderUsage::<CircleShader>::default(),
 
-        parameters: Color::ORANGE_RED.into(),
+        parameters: bevy::color::palettes::css::ORANGE_RED.into(),
         transform: Transform::from_scale(Vec3::ONE * 100.0),
         ..default()
     });
