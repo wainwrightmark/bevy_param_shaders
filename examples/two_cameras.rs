@@ -24,8 +24,8 @@ impl ExtractToShader for CircleShader {
     type ParamsBundle = ColorParams;
     type ResourceParams<'a> = ();
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    fn get_params(
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item

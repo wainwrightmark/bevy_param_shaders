@@ -1,12 +1,12 @@
 [package]
 name = "bevy_param_shaders"
-version = "0.1.0"
+version = "0.14.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.14.0-rc.4", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_render",
   "bevy_asset", # needed for handle ids
@@ -17,7 +17,7 @@ radsort = "0.1.0"
 uuid = { version = "1.9.1", default-features = false}
 
 [dev-dependencies]
-bevy = { version = "0.14.0-rc.4", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_render",
   "bevy_asset", # needed for handle ids
@@ -26,9 +26,9 @@ bevy = { version = "0.14.0-rc.4", default-features = false, features = [
   "file_watcher",
   "multi_threaded"
 ] }
-bevy_pancam = "0.11"
+bevy_pancam = "0.12"
 rand = "0.8"
-bevy_image_export = "0.10"
+bevy_image_export = "0.11"
 # profiling-procmacros = "1.0.15"
 
 [profile.dev]

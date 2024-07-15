@@ -59,9 +59,9 @@ impl ExtractToShader for BevyMorphShader {
     type ParamsBundle = ();
     type ResourceParams<'a> = (Res<'a, Time>, Res<'a, ColorResource>);
 
-    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
-        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
-        resources: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
+    fn get_params(
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        resources: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         MorphParams {
             color: resources.1.color,

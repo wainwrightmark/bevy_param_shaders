@@ -16,7 +16,7 @@ fn main() {
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
-            //bevy_pancam::PanCamPlugin,
+            bevy_pancam::PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         // .add_system_set(SystemSet::on_update(GameState::Running).with_system(update))
@@ -33,8 +33,8 @@ impl ExtractToShader for BevyBirdShader {
     type ParamsBundle = ColorParams;
     type ResourceParams<'a> = ();
 
-    fn get_params<'w, 'a>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    fn get_params(
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item
@@ -106,8 +106,8 @@ fn setup(mut commands: Commands) {
             },));
         }
     }
-    //commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
-    commands.spawn((Camera2dBundle::default()));
+    commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
+
 }
 
 // fn update(mut query: Query<(&mut Transform, &Index), With<ShaderShape::<MyShader>>>, time: Res<Time>) {

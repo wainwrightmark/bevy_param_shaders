@@ -17,8 +17,8 @@ pub trait ExtractToShader: Sync + Send + 'static {
     type ParamsBundle: Bundle;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
-    fn get_params<'a>(
-        query_item: <Self::ParamsQuery<'a> as WorldQuery>::Item<'_>,
+    fn get_params(
+        query_item: <Self::ParamsQuery<'_> as WorldQuery>::Item<'_>,
         resource: & <Self::ResourceParams<'_> as SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params;
 }
@@ -88,9 +88,9 @@ pub struct SDFColorCall {
     pub fill_color: &'static str,
 }
 
-impl Into<String> for SDFColorCall {
-    fn into(self) -> String {
-        let SDFColorCall { sdf, fill_color } = self;
+impl From<SDFColorCall> for String {
+    fn from(val: SDFColorCall) -> Self {
+        let SDFColorCall { sdf, fill_color } = val;
         format!(
             r#"let d = {sdf};
         let c = {fill_color};

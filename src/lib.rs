@@ -231,15 +231,15 @@ impl<Shader: ParameterizedShader> Default for ExtractedShapes<Shader> {
     }
 }
 
-fn extract_shapes<'w, 's, 'a, Extractable: ExtractToShader>(
+fn extract_shapes<'w, Extractable: ExtractToShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<Extractable::Shader>>,
     shape_query: Extract<
         Query<
             'w,
-            's,
+            '_,
             (
                 &ViewVisibility,
-                Extractable::ParamsQuery<'a>,
+                Extractable::ParamsQuery<'_>,
                 &GlobalTransform,
             ),
             With<ShaderUsage<Extractable>>,

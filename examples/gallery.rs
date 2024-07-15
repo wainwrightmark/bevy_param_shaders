@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-//use bevy_pancam::{PanCam, PanCamPlugin};
+use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_param_shaders::prelude::*;
 use rand::prelude::*;
 
@@ -20,7 +20,7 @@ fn main() {
             ExtractToShaderPlugin::<EllipseShader>::default(),
             bevy::diagnostic::LogDiagnosticsPlugin::default(),
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
-            //PanCamPlugin,
+            PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -38,8 +38,8 @@ macro_rules! define_sdf_shader {
             type ParamsBundle = ColorParams;
             type ResourceParams<'a> = ();
 
-            fn get_params<'w, 'a>(
-                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+            fn get_params(
+                query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
                 _r: &(),
             ) -> <Self::Shader as ParameterizedShader>::Params {
                 *query_item
@@ -115,7 +115,6 @@ define_sdf_shader!(
     "smud::sd_ellipse(in.pos, 0.2,0.8)"
 );
 
-
 fn setup(mut commands: Commands) {
     let mut rng = rand::thread_rng();
     let spacing = 100.0;
@@ -147,13 +146,11 @@ fn setup(mut commands: Commands) {
 
             macro_rules! spawn_bundle {
                 ($name:ident) => {
-                    commands.spawn((
-                        ShaderBundle::<$name> {
-                            transform,
-                            parameters: color.into(),
-                            ..default()
-                        },
-                    ))
+                    commands.spawn((ShaderBundle::<$name> {
+                        transform,
+                        parameters: color.into(),
+                        ..default()
+                    },))
                 };
             }
 
@@ -172,6 +169,5 @@ fn setup(mut commands: Commands) {
         }
     }
 
-    commands.spawn((Camera2dBundle::default()));
-    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn((Camera2dBundle::default(), PanCam::default()));
 }

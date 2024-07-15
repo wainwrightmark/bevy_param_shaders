@@ -25,9 +25,9 @@ impl ExtractToShader for BevyMorphShader {
     type ParamsBundle = ColorParams;
     type ResourceParams<'a> = ();
 
-    fn get_params<'w, 'w1, 'w2, 's2, 'a, 'r>(
-        query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w1>,
-        _resource: &'r <Self::ResourceParams<'w> as bevy::ecs::system::SystemParam>::Item<'w2, 's2>,
+    fn get_params(
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item
     }

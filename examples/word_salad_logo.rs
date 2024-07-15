@@ -17,6 +17,7 @@ use bevy_param_shaders::prelude::*;
 const WIDTH: u32 = 768;
 const HEIGHT: u32 = 768;
 
+
 fn main() {
     let export_plugin = ImageExportPlugin::default();
     let export_threads = export_plugin.threads.clone();
@@ -208,10 +209,10 @@ fn spawn_shape(commands: &mut Commands, index: usize) {
 
 fn index_to_color(index: usize) -> Color {
     match index {
-        0 | 1 => Color::rgb(0.09, 0.34, 0.27),
-        2 => Color::rgb(0.05, 0.43, 0.24),
-        3 => Color::rgb(0.01, 0.53, 0.22),
-        _ => Color::rgb(0.25, 0.67, 0.21),
+        0 | 1 => Color::srgb(0.09, 0.34, 0.27),
+        2 => Color::srgb(0.05, 0.43, 0.24),
+        3 => Color::srgb(0.01, 0.53, 0.22),
+        _ => Color::srgb(0.25, 0.67, 0.21),
     }
 }
 

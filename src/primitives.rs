@@ -40,7 +40,7 @@ impl ExtractToShader for RoundedRectShaderExtraction {
         _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         RoundedRectShaderParams {
-            color: query_item.0.color.into(),
+            color: query_item.0.color,
             rounding: query_item.1.rounding,
             height: query_item.2.height,
             width: query_item.2.width,
@@ -175,12 +175,12 @@ impl ExtractToShader for RoundedRectWithBorderShader {
         _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         RoundedRectWithBorderShaderParams {
-            color: query_item.0.color.into(),
+            color: query_item.0.color,
             rounding: query_item.1.rounding,
 
             width: query_item.2.width,
             height: query_item.2.height,
-            border_color: query_item.3.border_color.into(),
+            border_color: query_item.3.border_color,
             border: query_item.3.border,
         }
     }

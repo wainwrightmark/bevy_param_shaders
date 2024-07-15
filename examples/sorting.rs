@@ -1,5 +1,5 @@
 use bevy::{color::palettes, prelude::*};
-//use bevy_pancam::*;
+use bevy_pancam::*;
 use bevy_param_shaders::prelude::*;
 
 fn main() {
@@ -13,7 +13,7 @@ fn main() {
             ExtractToShaderPlugin::<CircleShader>::default(),
             ExtractToShaderPlugin::<BoxShader>::default(),
             ExtractToShaderPlugin::<HeartShader>::default(),
-            //PanCamPlugin,
+            PanCamPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -30,8 +30,8 @@ macro_rules! define_sdf_shader {
             type ParamsBundle = ColorParams;
             type ResourceParams<'a> = ();
 
-            fn get_params<'w, 'a>(
-                query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+            fn get_params(
+                query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
                 _r: &(),
             ) -> <Self::Shader as ParameterizedShader>::Params {
                 *query_item
@@ -139,6 +139,6 @@ fn setup(mut commands: Commands) {
         spawn_bundle!(HeartShader, 3.0, heart_color);
     }
 
-    //commands.spawn((Camera2dBundle::default(), PanCam::default()));
+    commands.spawn((Camera2dBundle::default(), PanCam::default()));
     commands.spawn(Camera2dBundle::default());
 }

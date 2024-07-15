@@ -26,8 +26,8 @@ impl ExtractToShader for BlueSquare {
     type ParamsBundle = ();
     type ResourceParams<'a> = ();
 
-    fn get_params<'w, 'a>(
-        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    fn get_params(
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         ColorParams{
@@ -44,8 +44,8 @@ impl ExtractToShader for RedSquare {
     type ParamsBundle = ();
     type ResourceParams<'a> = ();
 
-    fn get_params<'w, 'a>(
-        _query_item: <Self::ParamsQuery<'a> as bevy::ecs::query::WorldQuery>::Item<'w>,
+    fn get_params(
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         ColorParams{
