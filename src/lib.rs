@@ -41,7 +41,7 @@ use shader_pipeline::*;
 pub use bundle::ShaderBundle;
 pub use components::*;
 
-mod bundle;
+pub mod bundle;
 mod components;
 mod fragment_shader;
 pub mod frame;
@@ -65,6 +65,7 @@ pub mod prelude {
     pub use crate::{
         frame::Frame, parameterized_shader::*, shader_params::*, ExtractToShaderPlugin,
         ShaderBundle, ShaderUsage,
+        bundle::ShaderCheckVisibility
     };
 }
 
