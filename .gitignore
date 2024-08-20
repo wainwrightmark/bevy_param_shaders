@@ -1,3 +1,4 @@
 /target
 out/*.png
 logo_video.mp4
+Cargo.lock

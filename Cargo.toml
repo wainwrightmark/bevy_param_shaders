@@ -26,7 +26,7 @@ bevy = { version = "0.14.0", default-features = false, features = [
   "file_watcher",
   "multi_threaded"
 ] }
-bevy_pancam = "0.12"
+bevy_pancam = "0.13"
 rand = "0.8"
 bevy_image_export = "0.11"
 # profiling-procmacros = "1.0.15"
