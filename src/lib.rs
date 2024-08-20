@@ -84,7 +84,7 @@ impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable>
             render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
         };
 
-        //#[cfg(debug_assertions)]
+        #[cfg(debug_assertions)]
         {
             let component_id = app.world_mut().init_component::<ShaderUsage<Extractable>>();
 

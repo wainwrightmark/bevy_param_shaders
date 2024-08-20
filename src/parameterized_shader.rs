@@ -40,7 +40,7 @@ pub trait ParameterizedShader: Sync + Send + TypePath + 'static {
 
     const USE_TIME: bool = false;
 
-    const UUID: u128;
+    const UUID: u128; //TODO prevent duplicates
 }
 
 pub struct FragmentImport {

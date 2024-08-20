@@ -74,6 +74,7 @@ impl<Shader: ParameterizedShader> Plugin for ShaderLoadingPlugin<Shader> {
             .resource_mut::<Assets<bevy::render::render_resource::Shader>>();
         let fragment_shader = fragment_shader::create_fragment_shader::<Shader>();
 
+        //TODO check for duplicate asset ids here
         shaders.insert(get_vertex_asset_id::<Shader>(), vertex_shader);
         shaders.insert(get_fragment_asset_id::<Shader>(), fragment_shader);
     }
