@@ -31,6 +31,7 @@ use bevy::{
 };
 use bundle::ShaderCheckVisibility;
 use bytemuck::{NoUninit, Zeroable};
+use check_shapes::CheckShapesPlugin;
 use pipeline_key::PipelineKey;
 use shader_loading::*;
 
@@ -42,6 +43,7 @@ pub use bundle::ShaderBundle;
 pub use components::*;
 
 pub mod bundle;
+mod check_shapes;
 mod components;
 mod fragment_shader;
 pub mod frame;
@@ -63,9 +65,8 @@ pub mod primitives;
 /// ```
 pub mod prelude {
     pub use crate::{
-        frame::Frame, parameterized_shader::*, shader_params::*, ExtractToShaderPlugin,
-        ShaderBundle, ShaderUsage,
-        bundle::ShaderCheckVisibility
+        bundle::ShaderCheckVisibility, frame::Frame, parameterized_shader::*, shader_params::*,
+        ExtractToShaderPlugin, ShaderBundle, ShaderUsage,
     };
 }
 
@@ -77,12 +78,27 @@ impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable>
             app.add_plugins(ParamShaderPlugin::<Extractable::Shader>::default());
         }
 
-        //todo in debug mode add a system to check that all shader plugins are registered
         //todo in debug mode add a system to check that all shaders have the right parameters
 
         if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
         };
+
+        //#[cfg(debug_assertions)]
+        {
+            let component_id = app.world_mut().init_component::<ShaderUsage<Extractable>>();
+
+            if let Some(mut rt) = app
+                .world_mut()
+                .get_resource_mut::<crate::check_shapes::RegisteredExtractables>()
+            {
+                rt.0.insert(component_id);
+            } else {
+                let mut set = bevy::utils::HashSet::new();
+                set.insert(component_id);
+                app.insert_resource(crate::check_shapes::RegisteredExtractables(set));
+            }
+        }
     }
 }
 
@@ -110,6 +126,13 @@ impl Plugin for ParameterShadersPlugin {
             bevy::render::view::check_visibility::<With<ShaderCheckVisibility>>
                 .in_set(bevy::render::view::VisibilitySystems::CheckVisibility),
         );
+
+        #[cfg(debug_assertions)]
+        {
+            if !app.is_plugin_added::<CheckShapesPlugin>() {
+                app.add_plugins(CheckShapesPlugin);
+            }
+        }
     }
 }
 
@@ -128,7 +151,6 @@ impl<Shader: ParameterizedShader> Plugin for ParamShaderPlugin<Shader> {
             app.add_plugins(ParameterShadersPlugin);
         }
 
-        //todo in debug mode add a system to check that all shader plugins are registered
         //todo in debug mode add a system to check that all shaders have the right parameters
 
         if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
@@ -147,7 +169,6 @@ impl<Shader: ParameterizedShader> Plugin for ParamShaderPlugin<Shader> {
                     ),
                 );
         };
-        //app.register_type::<Shader>();
     }
 
     fn finish(&self, app: &mut App) {
