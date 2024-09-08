@@ -9,29 +9,111 @@ pub struct PrimitivesPlugin;
 
 impl Plugin for PrimitivesPlugin {
     fn build(&self, app: &mut App) {
-
         embedded_asset!(app, "", "shaders/fill/fill_with_border.wgsl");
         embedded_asset!(app, "", "shaders/fill/simple.wgsl");
         embedded_asset!(app, "", "shaders/sdf/rounded_rect.wgsl");
+        embedded_asset!(app, "", "shaders/sdf/rect.wgsl");
         embedded_asset!(app, "", "shaders/sdf/circle.wgsl");
 
+        app.add_plugins(ExtractToShaderPlugin::<RectShaderExtraction>::default());
         app.add_plugins(ExtractToShaderPlugin::<RoundedRectShaderExtraction>::default());
         app.add_plugins(ExtractToShaderPlugin::<RoundedRectWithBorderShader>::default());
         app.add_plugins(ExtractToShaderPlugin::<CircleShader>::default());
+    }
+}
 
+#[derive(Debug, Clone, Copy, TypePath, Default, PartialEq)]
+pub struct RectShader;
 
+impl ParameterizedShader for RectShader {
+    type Params = RectShaderParams;
+
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall {
+            sdf: "bps::rect::sdf(in.pos, in.width, in.height)",
+            fill_color: "bps::simple_fill::fill(d, in.color, in.pos)",
+        }
+    }
+
+    fn frame_expression() -> impl Into<String> {
+        "vec2<f32>(max(vertex.width, vertex.height))"
+    }
+
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [imports::fill::SIMPLE_FILL, imports::sdf::RECT].into_iter()
+    }
+
+    const UUID: u128 = 0x3e88f38055fa492390d8c0585bc9088c;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
+pub struct RectShaderParams {
+    pub color: LinearRgba,
+    // Width as a proportion of scale in range 0..=1.0
+    pub width: f32,
+
+    // Height as a proportion of scale in range 0..=1.0
+    pub height: f32,
+}
+
+impl ShaderParams for RectShaderParams {}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct RectShaderExtraction;
+
+impl ExtractToShader for RectShaderExtraction {
+    type Shader = RectShader;
+    type ParamsQuery<'a> = (&'a ShaderColor<0>, &'a ShaderProportions);
+    type ParamsBundle = (ShaderColor<0>, ShaderProportions);
+    type ResourceParams<'w> = ();
+
+    fn get_params(
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
+    ) -> <Self::Shader as ParameterizedShader>::Params {
+        RectShaderParams {
+            color: query_item.0.color,
+            height: query_item.1.height,
+            width: query_item.1.width,
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, TypePath, Default, PartialEq)]
 pub struct RoundedRectShader;
 
+impl ParameterizedShader for RoundedRectShader {
+    type Params = RoundedRectShaderParams;
+
+    fn fragment_body() -> impl Into<String> {
+        SDFColorCall {
+            sdf: "bps::rounded_rect::sdf(in.pos, in.width, in.height, in.rounding)",
+            fill_color: "bps::simple_fill::fill(d, in.color, in.pos)",
+        }
+    }
+
+    fn frame_expression() -> impl Into<String> {
+        "vec2<f32>(max(vertex.width, vertex.height))"
+    }
+
+    fn imports() -> impl Iterator<Item = FragmentImport> {
+        [imports::fill::SIMPLE_FILL, imports::sdf::ROUNDED_RECT].into_iter()
+    }
+
+    const UUID: u128 = 0xa31d800c02a24db78aaf1caa2bd1dc37;
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct RoundedRectShaderExtraction;
 
 impl ExtractToShader for RoundedRectShaderExtraction {
     type Shader = RoundedRectShader;
-    type ParamsQuery<'a> = (&'a ShaderColor<0>, &'a ShaderRounding, &'a ShaderProportions);
+    type ParamsQuery<'a> = (
+        &'a ShaderColor<0>,
+        &'a ShaderRounding,
+        &'a ShaderProportions,
+    );
     type ParamsBundle = (ShaderColor<0>, ShaderRounding, ShaderProportions);
     type ResourceParams<'w> = ();
 
@@ -48,29 +130,6 @@ impl ExtractToShader for RoundedRectShaderExtraction {
     }
 }
 
-impl ParameterizedShader for RoundedRectShader {
-    type Params = RoundedRectShaderParams;
-
-    fn fragment_body() -> impl Into<String> {
-        SDFColorCall {
-            sdf: "bps::rounded_rect::sdf(in.pos, in.width, in.height, in.rounding)",
-            fill_color: "bps::simple_fill::fill(d, in.color, in.pos)",
-        }
-    }
-
-    fn frame_expression() -> impl Into<String> {
-        //Frame::square(4.0)
-        "vec2<f32>(max(vertex.width, vertex.height))"
-        //"vec2<f32>(vertex.width, vertex.height)"
-    }
-
-    fn imports() -> impl Iterator<Item = FragmentImport> {
-        [imports::fill::SIMPLE_FILL, imports::sdf::ROUNDED_RECT].into_iter()
-    }
-
-    const UUID: u128 = 0xa31d800c02a24db78aaf1caa2bd1dc37;
-}
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Default, Reflect, Pod, Zeroable)]
 pub struct RoundedRectShaderParams {
@@ -85,7 +144,6 @@ pub struct RoundedRectShaderParams {
 
 impl ShaderParams for RoundedRectShaderParams {}
 
-
 /// A color used by a shader
 /// Some shaders use more than one color, different colors used will be determined by the index parameter
 #[derive(Debug, Clone, Copy, PartialEq, Component, Default)]
@@ -93,24 +151,27 @@ pub struct ShaderColor<const INDEX: usize> {
     pub color: LinearRgba,
 }
 
-impl<const INDEX :usize> From<Color> for ShaderColor<INDEX> {
+impl<const INDEX: usize> From<Color> for ShaderColor<INDEX> {
     fn from(color: Color) -> Self {
-        Self { color: color.to_linear() }
+        Self {
+            color: color.to_linear(),
+        }
     }
 }
 
-impl<const INDEX :usize> From<LinearRgba> for ShaderColor<INDEX> {
+impl<const INDEX: usize> From<LinearRgba> for ShaderColor<INDEX> {
     fn from(color: LinearRgba) -> Self {
         Self { color }
     }
 }
 
-impl<const INDEX :usize> From<Srgba> for ShaderColor<INDEX> {
+impl<const INDEX: usize> From<Srgba> for ShaderColor<INDEX> {
     fn from(color: Srgba) -> Self {
-        Self { color: Color::Srgba(color).to_linear() }
+        Self {
+            color: Color::Srgba(color).to_linear(),
+        }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
 pub struct ShaderRounding {
@@ -167,7 +228,12 @@ impl ExtractToShader for RoundedRectWithBorderShader {
         &'a ShaderProportions,
         &'a ShaderBorder,
     );
-    type ParamsBundle = (ShaderColor<0>, ShaderRounding, ShaderProportions, ShaderBorder);
+    type ParamsBundle = (
+        ShaderColor<0>,
+        ShaderRounding,
+        ShaderProportions,
+        ShaderBorder,
+    );
     type ResourceParams<'w> = ();
 
     fn get_params(
@@ -255,7 +321,9 @@ impl ExtractToShader for CircleShader {
         query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
         _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
-        ColorParams{color: query_item.color}
+        ColorParams {
+            color: query_item.color,
+        }
     }
 }
 
@@ -279,7 +347,6 @@ impl ParameterizedShader for CircleShader {
 
     const UUID: u128 = 0x9a8df8ca0f854ccfb0a3ad366a6e8b4b;
 }
-
 
 pub mod imports {
 
@@ -306,6 +373,11 @@ pub mod imports {
         pub const ROUNDED_RECT: FragmentImport = FragmentImport {
             path: "embedded://bevy_param_shaders/shaders/sdf/rounded_rect.wgsl",
             import_path: "bps::rounded_rect",
+        };
+
+        pub const RECT: FragmentImport = FragmentImport {
+            path: "embedded://bevy_param_shaders/shaders/sdf/rect.wgsl",
+            import_path: "bps::rect",
         };
     }
 }

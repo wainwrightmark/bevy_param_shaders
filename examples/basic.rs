@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_param_shaders::{
     prelude::*,
     primitives::{
-        PrimitivesPlugin, RoundedRectShaderExtraction, ShaderProportions, ShaderRounding,
+        PrimitivesPlugin, RectShaderExtraction, RoundedRectShaderExtraction, ShaderProportions, ShaderRounding
     },
 };
 
@@ -20,10 +20,9 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(ShaderBundle::<RoundedRectShaderExtraction> {
+    commands.spawn(ShaderBundle::<RectShaderExtraction> {
         parameters: (
             bevy::color::palettes::css::ORANGE_RED.into(),
-            ShaderRounding { rounding: 0.1 },
             ShaderProportions {
                 width: 0.75,
                 height: 1.5,
@@ -48,7 +47,7 @@ fn setup(mut commands: Commands) {
             },
         ),
         transform: Transform::from_rotation(Quat::from_rotation_z(consts::FRAC_PI_4))
-            .with_scale(Vec3::splat(100.0)),
+            .with_scale(Vec3::splat(100.0)).with_translation(Vec3::Z),
         ..default()
     });
 
