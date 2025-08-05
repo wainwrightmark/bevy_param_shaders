@@ -9,7 +9,7 @@ fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
+
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins((DefaultPlugins, PrimitivesPlugin))
         .add_systems(Startup, setup)
@@ -26,15 +26,16 @@ fn setup(mut commands: Commands) {
     });
 
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                ..default()
-            },
+        Camera2d {
+
 
             ..default()
         },
-        bevy::core_pipeline::bloom::BloomSettings {
+        Camera {
+            hdr: true,
+            ..default()
+        },
+        bevy::core_pipeline::bloom::Bloom {
             intensity: 0.7,
             ..default()
         },

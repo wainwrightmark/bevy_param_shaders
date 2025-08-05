@@ -1,34 +1,35 @@
 [package]
 name = "bevy_param_shaders"
-version = "0.14.2"
+version = "0.15.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.14", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_render",
-  "bevy_asset", # needed for handle ids
-]}
+  "bevy_asset",         # needed for handle ids
+] }
 bytemuck = { version = "1", features = ["derive"] }
 bitflags = "2"
 radsort = "0.1.0"
-uuid = { version = "1", default-features = false}
+uuid = { version = "1", default-features = false }
 
 [dev-dependencies]
-bevy = { version = "0.14.0", default-features = false, features = [
+bevy = { version = "0.16", default-features = true, features = [
   "bevy_core_pipeline",
   "bevy_render",
-  "bevy_asset", # needed for handle ids
+  "bevy_asset",         # needed for handle ids
   "bevy_winit",
-  "x11", # github actions runners don't have libxkbcommon installed, so can't use wayland
+  "x11",                # github actions runners don't have libxkbcommon installed, so can't use wayland
   "file_watcher",
-  "multi_threaded"
+  "multi_threaded",
+  "bevy_gizmos",
 ] }
-bevy_pancam = "0.13"
-rand = "0.8"
-bevy_image_export = "0.11"
+bevy_pancam = "0.18"
+rand = "0.9"
+bevy_image_export = "0.13"
 # profiling-procmacros = "1.0.15"
 
 [profile.dev]

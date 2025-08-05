@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::{sync_world::SyncToRenderWorld, view::VisibilityClass}};
 
 use crate::prelude::ExtractToShader;
 
@@ -8,6 +8,8 @@ use crate::prelude::ExtractToShader;
 /// The entity may need additional components to be extracted for drawing
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+#[require(Transform, Visibility, SyncToRenderWorld, VisibilityClass)]
+#[component(on_add = bevy::render::view::add_visibility_class::<ShaderUsage<Extract>>)]
 pub struct ShaderUsage<Extract: ExtractToShader> {
     phantom: PhantomData<Extract>,
 }

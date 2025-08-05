@@ -30,7 +30,15 @@ pub struct ShaderCheckVisibility;
 
 impl<Extract: ExtractToShader<ParamsBundle: Debug>> Debug for ShaderBundle<Extract> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ShaderBundle").field("parameters", &self.parameters).field("transform", &self.transform).field("shape", &self.shape).field("global_transform", &self.global_transform).field("visibility", &self.visibility).field("inherited_visibility", &self.inherited_visibility).field("view_visibility", &self.view_visibility).finish()
+        f.debug_struct("ShaderBundle")
+            .field("parameters", &self.parameters)
+            .field("transform", &self.transform)
+            .field("shape", &self.shape)
+            .field("global_transform", &self.global_transform)
+            .field("visibility", &self.visibility)
+            .field("inherited_visibility", &self.inherited_visibility)
+            .field("view_visibility", &self.view_visibility)
+            .finish()
     }
 }
 
@@ -44,7 +52,7 @@ impl<Extract: ExtractToShader<ParamsBundle: Clone>> Clone for ShaderBundle<Extra
             visibility: self.visibility,
             inherited_visibility: self.inherited_visibility,
             view_visibility: self.view_visibility,
-            shader_check_visibility: ShaderCheckVisibility
+            shader_check_visibility: ShaderCheckVisibility,
         }
     }
 }
@@ -76,7 +84,7 @@ where
             visibility: Default::default(),
             inherited_visibility: Default::default(),
             view_visibility: Default::default(),
-            shader_check_visibility: ShaderCheckVisibility
+            shader_check_visibility: ShaderCheckVisibility,
         }
     }
 }

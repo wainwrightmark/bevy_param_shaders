@@ -8,7 +8,6 @@ fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins((
             DefaultPlugins,
@@ -25,7 +24,7 @@ impl ExtractToShader for CircleShader {
     type ResourceParams<'a> = ();
 
     fn get_params(
-        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item
@@ -75,33 +74,28 @@ fn setup(mut commands: Commands) {
     });
 
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
+        Camera2d,
+        Transform::from_translation(Vec3::X * -500.0),
+        Camera {
                 hdr: true,
                 order: 1,
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::X * -500.0),
-            ..default()
-        },
-        bevy::core_pipeline::bloom::BloomSettings {
+        bevy::core_pipeline::bloom::Bloom {
             intensity: 0.9,
             ..default()
         },
     ));
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                order: 2,
-
-                ..default()
-            },
-            transform: Transform::from_translation(Vec3::X * 500.0),
+        Camera2d,
+        Camera {
+            hdr: true,
+            order: 2,
 
             ..default()
         },
-        bevy::core_pipeline::bloom::BloomSettings {
+        Transform::from_translation(Vec3::X * 500.0),
+        bevy::core_pipeline::bloom::Bloom {
             intensity: 0.4,
             ..default()
         },

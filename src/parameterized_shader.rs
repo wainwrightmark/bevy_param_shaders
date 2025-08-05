@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use crate::shader_params::ShaderParams;
 use bevy::{
     ecs::{
-        bundle::Bundle,
-        query::{ReadOnlyQueryData, WorldQuery},
+        bundle::{Bundle, BundleFromComponents},
+        query::{QueryData, ReadOnlyQueryData},
         system::{ReadOnlySystemParam, SystemParam},
     },
     reflect::TypePath,
@@ -14,12 +14,12 @@ use bevy::{
 pub trait ExtractToShader: Sync + Send + 'static {
     type Shader: ParameterizedShader;
     type ParamsQuery<'a>: ReadOnlyQueryData;
-    type ParamsBundle: Bundle;
+    type ParamsBundle: Bundle + BundleFromComponents;
     type ResourceParams<'w>: SystemParam + ReadOnlySystemParam;
 
     fn get_params(
-        query_item: <Self::ParamsQuery<'_> as WorldQuery>::Item<'_>,
-        resource: & <Self::ResourceParams<'_> as SystemParam>::Item<'_, '_>,
+        query_item: <Self::ParamsQuery<'_> as QueryData>::Item<'_>,
+        resource: &<Self::ResourceParams<'_> as SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params;
 }
 

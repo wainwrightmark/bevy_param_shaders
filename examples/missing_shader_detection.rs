@@ -7,9 +7,6 @@ use bevy_param_shaders::prelude::*;
 /// This example tests that warning messages are logged when you forget to add a shader extraction on debug mode.
 fn main() {
     App::new()
-        // bevy_smud comes with anti-aliasing built into the standards fills
-        // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
             ExtractToShaderPlugin::<BlueSquare>::default(),
@@ -28,7 +25,7 @@ impl ExtractToShader for BlueSquare {
     type ResourceParams<'a> = ();
 
     fn get_params(
-        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         ColorParams {
@@ -46,7 +43,7 @@ impl ExtractToShader for RedSquare {
     type ResourceParams<'a> = ();
 
     fn get_params(
-        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         ColorParams {
@@ -94,5 +91,5 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 }

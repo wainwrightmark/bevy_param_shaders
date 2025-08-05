@@ -1,8 +1,8 @@
-use std::any::TypeId;
+use std::any::{type_name, Any, TypeId};
 
-use bevy::{color::LinearRgba, math::Vec4, render::render_resource::VertexFormat};
+use bevy::{color::LinearRgba, log::{info, warn}, math::Vec4, reflect::{PartialReflect, TypeRegistry}, render::render_resource::VertexFormat};
 
-use crate::shader_params::*;
+use crate::{primitives::ShaderColor, shader_params::*};
 
 pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32) -> String {
     let mut result = "".to_string();
@@ -13,18 +13,16 @@ pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32
     let mut loc = previous_params;
 
     for index in 0..param_count {
-        //let t = crate::parameterized_shader::format_to_name(Shader::get_format(index));
         let name = proxy.name_at(index).unwrap();
-        let type_id = proxy.field_at(index).unwrap().type_id();
+        let field = proxy.field_at(index).unwrap();
 
-        let Some(type_name) = get_wgsl_type_name(type_id) else {
-            let field = proxy.field_at(index).unwrap();
-            let name = field
+        let Some(type_name) = get_wgsl_type_name(field) else {
+            let field_type_path = field
                 .get_represented_type_info()
                 .map(|info| info.type_path())
                 .unwrap_or_else(|| field.reflect_type_path());
 
-            panic!("Cannot convert {name} to wgsl type",);
+            panic!("Cannot convert {}.{name} ({field_type_path}) to wgsl type", type_name::<PARAMS>());
         };
 
         result.push_str(format!("@location({loc}) {name}: {type_name},\n").as_str());
@@ -34,8 +32,8 @@ pub(crate) fn format_params_locations<PARAMS: ShaderParams>(previous_params: u32
     result
 }
 
-pub(crate) fn get_wgsl_type_name(type_id: TypeId) -> Option<&'static str> {
-    let vertex_format = get_vertex_format(type_id)?;
+pub(crate) fn get_wgsl_type_name(field: &dyn PartialReflect) -> Option<&'static str> {
+    let vertex_format = get_vertex_format(field)?;
 
     match vertex_format {
         VertexFormat::Float32 => Some("f32"),
@@ -58,22 +56,25 @@ pub(crate) fn get_wgsl_type_name(type_id: TypeId) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn get_vertex_format(type_id: TypeId) -> Option<VertexFormat> {
-    if type_id == TypeId::of::<f32>() {
+pub(crate) fn get_vertex_format(field: &dyn PartialReflect) -> Option<VertexFormat> {
+
+    if field.represents::<f32>(){
         Some(VertexFormat::Float32)
-    } else if type_id == TypeId::of::<u32>() {
+    } else if field.represents::<u32>() {
         Some(VertexFormat::Uint32)
-    } else if type_id == TypeId::of::<i32>() {
+    } else if field.represents::<i32>() {
         Some(VertexFormat::Sint32)
-    } else if type_id == TypeId::of::<bevy::math::Vec2>() {
+    } else if field.represents::<bevy::math::Vec2>() {
         Some(VertexFormat::Float32x2)
-    } else if type_id == TypeId::of::<bevy::math::Vec3>() {
+    } else if field.represents::<bevy::math::Vec3>() {
         Some(VertexFormat::Float32x3)
-    } else if type_id == TypeId::of::<Vec4>() {
+    } else if field.represents::<Vec4>() {
         Some(VertexFormat::Float32x4)
-    } else if type_id == TypeId::of::<LinearRgba>() {
+    } else if field.represents::<bevy::color::LinearRgba>() {
         Some(VertexFormat::Float32x4)
     } else {
+        warn!("Field does not have vertex format defined");
+        //warn!("Type '{:?}' of {:?}", TypeId::of::<bevy::color::LinearRgba>(), type_name::<bevy::color::LinearRgba>());
         None
     }
 }

@@ -1,25 +1,18 @@
-use crate::pipeline_key::PipelineKey;
-
 use bevy::{
-    prelude::*,
-    render::{
+    core_pipeline::core_2d::CORE_2D_DEPTH_FORMAT, prelude::*, render::{
         globals::GlobalsUniform,
+        mesh::BaseMeshPipelineKey,
         render_resource::{
-            BindGroupLayout,  BindGroupLayoutEntry, BindingType,
-            BlendState, BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState,
-            FrontFace, MultisampleState, PolygonMode, PrimitiveState, RenderPipelineDescriptor,
-            ShaderStages, ShaderType, SpecializedRenderPipeline, TextureFormat, VertexAttribute,
-            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            BindGroupLayout, BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Face, FragmentState, FrontFace, MultisampleState, PolygonMode, PrimitiveState, RenderPipelineDescriptor, ShaderStages, ShaderType, SpecializedRenderPipeline, StencilFaceState, StencilState, TextureFormat, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode
         },
         renderer::RenderDevice,
-        texture::BevyDefault,
         view::{ViewTarget, ViewUniform},
-    },
+    }
 };
 
-use crate::parameterized_shader::*;
+use crate::{parameterized_shader::*, pipeline_key::MeshPipelineKey};
 
-use std::marker::PhantomData;
+use std::{any::Any, marker::PhantomData};
 
 #[derive(Resource)]
 pub(crate) struct ShaderPipeline<Shader: ParameterizedShader> {
@@ -66,8 +59,7 @@ impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
         }];
 
         let view_layout = if Shader::USE_TIME {
-            render_device.create_bind_group_layout("shape_view_layout"
-            , ENTRIES_WITH_TIME)
+            render_device.create_bind_group_layout("shape_view_layout", ENTRIES_WITH_TIME)
         } else {
             render_device.create_bind_group_layout("shape_view_layout", ENTRIES_WITHOUT_TIME)
         };
@@ -79,14 +71,14 @@ impl<Shader: ParameterizedShader> FromWorld for ShaderPipeline<Shader> {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub(crate) struct ShaderPipelineKey {
-    pub mesh: PipelineKey,
-    pub hdr: bool,
-}
+// #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+// pub(crate) struct ShaderPipelineKey {
+//     pub mesh: MeshPipelineKey,
+//     pub hdr: bool,
+// }
 
 impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<Shader> {
-    type Key = ShaderPipelineKey;
+    type Key = MeshPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
         // debug!("specializing for {fragment_shader:?}");
@@ -137,7 +129,7 @@ impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
         let mut shader_location: u32 = CONSTANT_PARAMS as u32;
 
         for field in proxy.iter_fields() {
-            let Some(format) = crate::helpers::get_vertex_format(field.type_id()) else {
+            let Some(format) = crate::helpers::get_vertex_format(field) else {
                 panic!(
                     "Cannot convert {} to wgsl type",
                     field
@@ -156,6 +148,23 @@ impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
             shader_location += 1;
         }
 
+        let depth_stencil = Some(DepthStencilState {
+            format: CORE_2D_DEPTH_FORMAT,
+                depth_write_enabled: false,
+                depth_compare: CompareFunction::GreaterEqual,
+                stencil: StencilState {
+                    front: StencilFaceState::IGNORE,
+                    back: StencilFaceState::IGNORE,
+                    read_mask: 0,
+                    write_mask: 0,
+                },
+                bias: DepthBiasState {
+                    constant: 0,
+                    slope_scale: 0.0,
+                    clamp: 0.0,
+                },
+        });
+
         RenderPipelineDescriptor {
             vertex: VertexState {
                 shader: crate::shader_loading::get_vertex_handle::<Shader>().clone_weak(),
@@ -172,7 +181,7 @@ impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
                 entry_point: "fragment".into(),
                 shader_defs: Vec::new(),
                 targets: vec![Some(ColorTargetState {
-                    format: if key.hdr {
+                    format: if key.hdr() {
                         ViewTarget::TEXTURE_FORMAT_HDR
                     } else {
                         TextureFormat::bevy_default()
@@ -191,17 +200,31 @@ impl<Shader: ParameterizedShader> SpecializedRenderPipeline for ShaderPipeline<S
                 unclipped_depth: false, // What is this?
                 polygon_mode: PolygonMode::Fill,
                 conservative: false, // What is this?
-                topology: key.mesh.primitive_topology(),
+                topology: key.primitive_topology(),
                 strip_index_format: None, // TODO: what does this do?
             },
-            depth_stencil: None,
+            depth_stencil,
             multisample: MultisampleState {
-                count: key.mesh.msaa_samples(),
+                count: key.msaa_samples(),
                 mask: !0,                         // what does the mask do?
                 alpha_to_coverage_enabled: false, // what is this?
             },
             label: Some("param_shader_pipeline".into()),
             push_constant_ranges: Vec::new(),
+            zero_initialize_workgroup_memory: false,
         }
     }
 }
+
+// Some(DepthStencilState {
+//     format: TextureFormat::Stencil8,
+//     depth_write_enabled: false,
+//     depth_compare: CompareFunction::Always,
+//     stencil: StencilState {
+//         front: stencil_face_state,
+//         back: stencil_face_state,
+//         read_mask: 1,
+//         write_mask: 1,
+//     },
+//     bias: default(),
+// })

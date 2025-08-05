@@ -13,6 +13,7 @@ use bevy::{
         },
     },
     math::{FloatOrd, Vec3Swizzles},
+    platform::collections::HashSet,
     prelude::*,
     render::{
         globals::GlobalsBuffer,
@@ -29,10 +30,9 @@ use bevy::{
         Extract, Render, RenderApp, RenderSet,
     },
 };
-use bundle::ShaderCheckVisibility;
 use bytemuck::{NoUninit, Zeroable};
 use check_shapes::CheckShapesPlugin;
-use pipeline_key::PipelineKey;
+use pipeline_key::MeshPipelineKey;
 use shader_loading::*;
 
 use parameterized_shader::*;
@@ -83,18 +83,24 @@ impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable>
         if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
         };
-
         #[cfg(debug_assertions)]
         {
-            let component_id = app.world_mut().init_component::<ShaderUsage<Extractable>>();
+            info!(
+                "Trying to register {}",
+                std::any::type_name::<Extractable>()
+            );
+            let component_id = app
+                .world_mut()
+                .register_component::<ShaderUsage<Extractable>>();
 
             if let Some(mut rt) = app
                 .world_mut()
                 .get_resource_mut::<crate::check_shapes::RegisteredExtractables>()
             {
+                bevy::log::info!("Registered {}", std::any::type_name::<Extractable>());
                 rt.0.insert(component_id);
             } else {
-                let mut set = bevy::utils::HashSet::new();
+                let mut set = HashSet::new();
                 set.insert(component_id);
                 app.insert_resource(crate::check_shapes::RegisteredExtractables(set));
             }
@@ -120,12 +126,12 @@ impl Plugin for ParameterShadersPlugin {
             );
         };
 
-        //todo improve check visibility
-        app.add_systems(
-            PostUpdate,
-            bevy::render::view::check_visibility::<With<ShaderCheckVisibility>>
-                .in_set(bevy::render::view::VisibilitySystems::CheckVisibility),
-        );
+        // //todo improve check visibility
+        // app.add_systems(
+        //     PostUpdate,
+        //     bevy::render::view::check_visibility::<With<ShaderCheckVisibility>>
+        //         .in_set(bevy::render::view::VisibilitySystems::CheckVisibility),
+        // );
 
         #[cfg(debug_assertions)]
         {
@@ -221,18 +227,21 @@ impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBa
         shape_meta: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
+        //info!("Render!");
         let shape_meta = shape_meta.into_inner();
         if let Some(batch) = batch {
             if let Some(buffer) = shape_meta.vertices.buffer() {
                 pass.set_vertex_buffer(0, buffer.slice(..));
                 pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
+
+                //info!("Rendering {batch:?}");
                 RenderCommandResult::Success
             } else {
-                warn!("Render Fail {:?}", batch);
-                RenderCommandResult::Failure
+                //warn!("Render Fail {batch:?}");
+                RenderCommandResult::Skip
             }
         } else {
-            RenderCommandResult::Failure
+            RenderCommandResult::Skip
         }
     }
 }
@@ -270,21 +279,29 @@ fn extract_shapes<'w, Extractable: ExtractToShader>(
     resource_params: Extract<StaticSystemParam<Extractable::ResourceParams<'w>>>,
 ) {
     let resource = resource_params;
+    //info!("extract shapes a");
 
     for (view_visibility, params_item, transform) in shape_query.iter() {
-        if !view_visibility.get() {
-            continue;
-        }
+        //info!("extract shapes b");
+        // if !view_visibility.get() {
+        //     //TODO put back
+        //     info!("Ignoring {view_visibility:?} - Not Visible ",);
+        //     continue;
+        // }
 
         let params = Extractable::get_params(params_item, &resource);
 
         let shape_vertex = ShapeVertex::new(transform, params);
+
+        //info!("Extracting {view_visibility:?} - {shape_vertex:?} ",);
 
         extracted_shapes.vertices.push(shape_vertex);
     }
 }
 
 fn sort_shapes<Shader: ParameterizedShader>(mut extracted_shapes: ResMut<ExtractedShapes<Shader>>) {
+    //info!("Sorting {} shapes", extracted_shapes.vertices.len());
+
     radsort::sort_by_key(extracted_shapes.as_mut().vertices.values_mut(), |item| {
         item.z_index()
     });
@@ -296,35 +313,36 @@ fn queue_shapes<Shader: ParameterizedShader>(
     pipeline: Res<ShaderPipeline<Shader>>,
     mut pipelines: ResMut<SpecializedRenderPipelines<ShaderPipeline<Shader>>>,
     pipeline_cache: ResMut<PipelineCache>,
-    msaa: Res<Msaa>,
     extracted_shapes: Res<ExtractedShapes<Shader>>,
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
-    views: Query<(Entity, &ExtractedView)>,
+    views: Query<(&ExtractedView, &Msaa)>,
 ) {
     let draw_function = draw_functions
         .read()
         .get_id::<DrawShaderShape<Shader>>()
         .unwrap();
+    // info!(
+    //     "Queue Shapes a: {} extracted shapes",
+    //     extracted_shapes.vertices.len()
+    // );
 
     // Iterate over each view (a camera is a view)
-    for (view_entity, view) in views.iter() {
-        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+    for (view, msaa) in views.iter() {
+        //info!("Queue Shapes b");
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view.retained_view_entity)
+        else {
             continue;
         };
-        // todo: bevy_sprite does some hdr stuff, should we?
-        // let mut view_key = SpritePipelineKey::from_hdr(view.hdr) | msaa_key;
 
-        let mesh_key = PipelineKey::from_msaa_samples(msaa.samples())
-            | PipelineKey::from_primitive_topology(PrimitiveTopology::TriangleStrip);
+        let mesh_key = MeshPipelineKey::from_msaa_samples(msaa.samples())
+            | MeshPipelineKey::from_primitive_topology(PrimitiveTopology::TriangleStrip)
+            | MeshPipelineKey::from_hdr(view.hdr);
 
-        let specialize_key = ShaderPipelineKey {
-            mesh: mesh_key,
-            hdr: view.hdr,
-        };
-        let pipeline = pipelines.specialize(&pipeline_cache, &pipeline, specialize_key);
+        let pipeline = pipelines.specialize(&pipeline_cache, &pipeline, mesh_key);
 
         let mut index = 0;
         while let Some(first_shape) = extracted_shapes.vertices.values().get(index) {
+            //info!("Queue Shapes c");
             let start = index;
             index += 1;
             let z = first_shape.z_index();
@@ -335,6 +353,7 @@ fn queue_shapes<Shader: ParameterizedShader>(
                 .get(index)
                 .is_some_and(|n| n.z_index() == z)
             {
+                //info!("Queue Shapes d");
                 index += 1;
             }
 
@@ -342,14 +361,24 @@ fn queue_shapes<Shader: ParameterizedShader>(
             let range = (start as u32)..(index as u32);
             let entity = commands.spawn(ShapeBatch { range }).id();
 
+            // info!(
+            //     "Adding shape batch: z={z} range={start}..{index} ({} shapes)",
+            //     index - start
+            // );
+
             // Add the item to the render phase
             transparent_phase.add(Transparent2d {
                 draw_function,
                 pipeline,
-                entity,
+                entity: (
+                    entity,
+                    bevy::render::sync_world::MainEntity::from(Entity::PLACEHOLDER),
+                ),
                 sort_key,
                 batch_range: 0..1,
-                extra_index: PhaseItemExtraIndex::NONE,
+                extra_index: PhaseItemExtraIndex::None,
+                indexed: false,
+                extracted_index: start,
             });
         }
     }
@@ -396,17 +425,27 @@ fn join_adjacent_batches(
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
     mut batches: Query<&mut ShapeBatch>,
 ) {
+    let batch_count = batches.iter().count();
+    //info!("Join Adjacent Branches. {batch_count} Batches");
+    // info!("a");
     for transparent_phase in transparent_render_phases.0.values_mut() {
         let mut index = 0;
-
+        // info!("b");
         while let Some(item) = transparent_phase.items.get(index) {
             let item_index = index;
             index += 1;
+            // info!("c");
 
-            let entity = item.entity;
+            let entity = item.entity();
             let Ok(batch) = batches.get(entity) else {
                 continue;
             };
+
+            // info!(
+            //     "Item: {}..{} {} {}",
+            //     item.batch_range.start, item.batch_range.end, item.entity.0, item.sort_key.0
+            // );
+
             let mut range = batch.range.clone();
             let mut extra_count = 0;
 
@@ -414,7 +453,7 @@ fn join_adjacent_batches(
                 if item.draw_function != next.draw_function {
                     break 'concat;
                 }
-                let next_entity = next.entity;
+                let next_entity = next.entity();
                 let Ok(next_batch) = batches.get(next_entity) else {
                     break 'concat;
                 };

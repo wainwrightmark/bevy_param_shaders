@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{ecs::component::ComponentId, prelude::*};
+use bevy::{ecs::component::ComponentId, platform::collections::HashSet, prelude::*};
 
 pub(crate) struct CheckShapesPlugin;
 
@@ -11,7 +11,7 @@ impl Plugin for CheckShapesPlugin {
 }
 
 #[derive(Debug, Resource)]
-pub(crate) struct RegisteredExtractables(pub bevy::utils::HashSet<ComponentId>);
+pub(crate) struct RegisteredExtractables(pub HashSet<ComponentId>);
 
 //Checks that all shaders have been registered every 3 seconds
 #[allow(clippy::needless_pass_by_value)]
@@ -26,7 +26,7 @@ fn check_extractables(
     } else {
         *remaining_time = Duration::from_secs(3);
 
-        for component in world.components().iter().filter(|component_info| {
+        for component in world.components().iter_registered().filter(|component_info| {
             component_info
                 .name()
                 .starts_with("bevy_param_shaders::components::ShaderUsage<")

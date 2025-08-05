@@ -6,7 +6,7 @@ fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
+
         .add_plugins((
             DefaultPlugins,
             ExtractToShaderPlugin::<BevyMorphShader>::default(),
@@ -26,7 +26,7 @@ impl ExtractToShader for BevyMorphShader {
     type ResourceParams<'a> = ();
 
     fn get_params(
-        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         _resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item
@@ -77,5 +77,5 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 }

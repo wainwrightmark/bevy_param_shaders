@@ -8,13 +8,11 @@ use rand::prelude::*;
 
 fn main() {
     App::new()
-        // bevy_smud comes with anti-aliasing built into the standards fills
-        // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
+
         .add_plugins((
             DefaultPlugins,
             LogDiagnosticsPlugin::default(),
-            FrameTimeDiagnosticsPlugin,
+            FrameTimeDiagnosticsPlugin::default(),
             ExtractToShaderPlugin::<BevyBirdShader>::default(),
             bevy_pancam::PanCamPlugin,
         ))
@@ -34,7 +32,7 @@ impl ExtractToShader for BevyBirdShader {
     type ResourceParams<'a> = ();
 
     fn get_params(
-        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         _r: &(),
     ) -> <Self::Shader as ParameterizedShader>::Params {
         *query_item
@@ -106,7 +104,7 @@ fn setup(mut commands: Commands) {
             },));
         }
     }
-    commands.spawn((Camera2dBundle::default(), bevy_pancam::PanCam::default()));
+    commands.spawn((Camera2d::default(), bevy_pancam::PanCam::default()));
 
 }
 

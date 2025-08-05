@@ -1,5 +1,5 @@
 use bevy::{
-    core::FrameCount,
+    diagnostic::FrameCount,
     prelude::*,
     render::{
         camera::RenderTarget,
@@ -8,15 +8,12 @@ use bevy::{
         },
     },
 };
-use bevy_image_export::{
-    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
-};
+use bevy_image_export::{ImageExportPlugin, ImageExportSettings, ImageExportSource};
 // The prelude contains the basic things needed to create shapes
 use bevy_param_shaders::prelude::*;
 
 const WIDTH: u32 = 768;
 const HEIGHT: u32 = 768;
-
 
 fn main() {
     let export_plugin = ImageExportPlugin::default();
@@ -25,7 +22,6 @@ fn main() {
     App::new()
         // bevy_smud comes with anti-aliasing built into the standards fills
         // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
@@ -86,31 +82,22 @@ fn setup_camera(
     };
 
     commands
-        .spawn(Camera2dBundle {
-            transform: Transform::from_translation(5.0 * Vec3::Z),
-            ..default()
-        })
+        .spawn((Camera2d, Transform::from_translation(5.0 * Vec3::Z)))
         .with_children(|parent| {
-            parent.spawn(Camera2dBundle {
-                camera: Camera {
-                    // Connect the output texture to a camera as a RenderTarget.
-                    target: RenderTarget::Image(output_texture_handle.clone()),
-                    ..default()
-                },
+            parent.spawn((Camera {
+                // Connect the output texture to a camera as a RenderTarget.
+                target: RenderTarget::Image(output_texture_handle.into()),
                 ..default()
-            });
+            },));
         });
 
     // Spawn the ImageExportBundle to initiate the export of the output texture.
-    commands.spawn(ImageExportBundle {
-        source: export_sources.add(output_texture_handle),
-        settings: ImageExportSettings {
+    commands.spawn((ImageExportSource(output_texture_handle), ImageExportSettings {
             // Frames will be saved to "./out/[#####].png".
             output_dir: "out".into(),
             // Choose "exr" for HDR renders.
             extension: "png".into(),
-        },
-    });
+        },) );
 }
 
 fn setup(mut commands: Commands) {
@@ -123,7 +110,7 @@ fn setup(mut commands: Commands) {
 
         //     ..default()
         // },
-        bevy::core_pipeline::bloom::BloomSettings {
+        bevy::core_pipeline::bloom::Bloom {
             intensity: 0.1,
             composite_mode: bevy::core_pipeline::bloom::BloomCompositeMode::Additive,
             ..default()
@@ -255,7 +242,7 @@ impl ExtractToShader for WordLineSegmentShader {
     type ResourceParams<'w> = Res<'w, WordLineGlobalValues>;
 
     fn get_params(
-        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         resource: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         let progress = if query_item.0.is_final_segment {
@@ -367,7 +354,7 @@ fn transition_word_line(
     mut targets: ResMut<WordLineGlobalTargets>,
     time: Res<Time>,
 ) {
-    let progress_change = time.delta_seconds() * PROGRESS_SPEED;
+    let progress_change = time.delta_secs() * PROGRESS_SPEED;
 
     let progress = match targets.target_progress {
         ProgressTarget::IncreaseToOne => (values.progress + progress_change).min(1.0),

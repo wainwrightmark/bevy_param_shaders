@@ -6,9 +6,6 @@ fn main() {
     let mut app = App::new();
 
     app
-        // bevy_smud comes with anti-aliasing built into the standards fills
-        // which is more efficient than MSAA, and also works on Linux, wayland
-        .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins,
             ExtractToShaderPlugin::<BevyMorphShader>::default(),
@@ -46,7 +43,7 @@ impl Default for ColorResource {
 }
 
 fn change_color(mut color: ResMut<ColorResource>, time: Res<Time>) {
-    color.color.blue = (color.color.blue + (time.delta_seconds() * 0.2)) % 1.0;
+    color.color.blue = (color.color.blue + (time.delta_secs() * 0.2)) % 1.0;
 }
 
 #[repr(C)]
@@ -60,12 +57,12 @@ impl ExtractToShader for BevyMorphShader {
     type ResourceParams<'a> = (Res<'a, Time>, Res<'a, ColorResource>);
 
     fn get_params(
-        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::WorldQuery>::Item<'_>,
+        _query_item: <Self::ParamsQuery<'_> as bevy::ecs::query::QueryData>::Item<'_>,
         resources: &<Self::ResourceParams<'_> as bevy::ecs::system::SystemParam>::Item<'_, '_>,
     ) -> <Self::Shader as ParameterizedShader>::Params {
         MorphParams {
             color: resources.1.color,
-            time: resources.0.elapsed_seconds_wrapped(),
+            time: resources.0.elapsed_secs_wrapped(),
         }
     }
 }
@@ -112,5 +109,5 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 }

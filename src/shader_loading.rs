@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use bevy::{prelude::*, utils::HashSet};
+use bevy::prelude::*;
 
 use crate::{fragment_shader, parameterized_shader::*, vertex_shader};
 
@@ -9,7 +9,9 @@ pub const fn get_vertex_asset_id<Shader: ParameterizedShader>(
     let id = 41038750339221851237u128;
     let new_id = id.wrapping_add(Shader::UUID.wrapping_mul(2875688479));
 
-    AssetId::Uuid{ uuid: uuid::Uuid::from_u128(new_id)}
+    AssetId::Uuid {
+        uuid: uuid::Uuid::from_u128(new_id),
+    }
 }
 
 pub const fn get_fragment_asset_id<Shader: ParameterizedShader>(
@@ -17,17 +19,19 @@ pub const fn get_fragment_asset_id<Shader: ParameterizedShader>(
     let id = 24284142412967609353u128;
     let new_id = id.wrapping_add(Shader::UUID.wrapping_mul(2875688479));
 
-    AssetId::Uuid{ uuid: uuid::Uuid::from_u128(new_id)}
+    AssetId::Uuid {
+        uuid: uuid::Uuid::from_u128(new_id),
+    }
 }
 
 pub const fn get_vertex_handle<Shader: ParameterizedShader>(
 ) -> Handle<bevy::render::render_resource::Shader> {
-    Handle::Weak( get_vertex_asset_id::<Shader>())
+    Handle::Weak(get_vertex_asset_id::<Shader>())
 }
 
 pub const fn get_fragment_handle<Shader: ParameterizedShader>(
 ) -> Handle<bevy::render::render_resource::Shader> {
-    Handle::Weak( get_fragment_asset_id::<Shader>())
+    Handle::Weak(get_fragment_asset_id::<Shader>())
 }
 
 pub struct ShaderLoadingPlugin<Shader: ParameterizedShader> {
@@ -44,15 +48,13 @@ impl<Shader: ParameterizedShader> Default for ShaderLoadingPlugin<Shader> {
 
 #[derive(Debug, Resource, Default)]
 struct LoadedShaderHandles {
-    set: HashSet<Handle<bevy::render::render_resource::Shader>>,
+    set: bevy::platform::collections::HashSet<Handle<bevy::render::render_resource::Shader>>,
 }
 
 impl<Shader: ParameterizedShader> Plugin for ShaderLoadingPlugin<Shader> {
     fn build(&self, app: &mut App) {
-
         app.init_resource::<LoadedShaderHandles>();
         let vertex_shader = vertex_shader::create_vertex_shader::<Shader>();
-
 
         let asset_server = app.world_mut().resource_mut::<AssetServer>();
 
