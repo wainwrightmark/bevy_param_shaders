@@ -75,7 +75,7 @@ impl ParameterizedShader for BevyBirdShader {
 }
 
 fn setup(mut commands: Commands) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let spacing = 800.0;
     let w = 1024;
     let h = w;
@@ -87,10 +87,10 @@ fn setup(mut commands: Commands) {
     for i in 0..w {
         for j in 0..h {
             let color = Color::Srgba(Srgba {
-                red: rng.gen_range(0.1..=1.0),
-                green: rng.gen_range(0.1..=1.0),
-                blue: rng.gen_range(0.1..=1.0),
-                alpha: rng.gen_range(0.5..=1.0),
+                red: rng.random_range(0.1..=1.0),
+                green: rng.random_range(0.1..=1.0),
+                blue: rng.random_range(0.1..=1.0),
+                alpha: rng.random_range(0.5..=1.0),
             });
 
             commands.spawn((ShaderBundle::<BevyBirdShader> {

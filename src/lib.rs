@@ -18,8 +18,9 @@ use bevy::{
     render::{
         globals::GlobalsBuffer,
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
+            AddRenderCommand, DrawFunctionId, DrawFunctions, PhaseItem, PhaseItemExtraIndex,
+            RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+            ViewSortedRenderPhases,
         },
         render_resource::{
             BindGroup, BindGroupEntries, BufferUsages, PipelineCache, PrimitiveTopology,
@@ -82,6 +83,8 @@ impl<Extractable: ExtractToShader> Plugin for ExtractToShaderPlugin<Extractable>
 
         if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app.add_systems(ExtractSchedule, (extract_shapes::<Extractable>,));
+
+            render_app.init_resource::<ShapeBatches<Extractable::Shader>>();
         };
         #[cfg(debug_assertions)]
         {
@@ -119,13 +122,6 @@ struct ParameterShadersPlugin;
 
 impl Plugin for ParameterShadersPlugin {
     fn build(&self, app: &mut App) {
-        if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
-            render_app.add_systems(
-                Render,
-                join_adjacent_batches.in_set(RenderSet::PrepareBindGroups),
-            );
-        };
-
         // //todo improve check visibility
         // app.add_systems(
         //     PostUpdate,
@@ -216,33 +212,30 @@ impl<P: PhaseItem, const I: usize, Shader: ParameterizedShader> RenderCommand<P>
 
 struct DrawShapeBatch<Shader: ParameterizedShader>(PhantomData<Shader>);
 impl<P: PhaseItem, Shader: ParameterizedShader> RenderCommand<P> for DrawShapeBatch<Shader> {
-    type Param = SRes<ExtractedShapes<Shader>>;
+    type Param = (SRes<ExtractedShapes<Shader>>, SRes<ShapeBatches<Shader>>);
     type ViewQuery = ();
-    type ItemQuery = Read<ShapeBatch>;
+    type ItemQuery = ();
 
     fn render<'w>(
         _item: &P,
         _view: (),
-        batch: Option<&'_ ShapeBatch>,
-        shape_meta: SystemParamItem<'w, '_, Self::Param>,
+        _entity: Option<()>,
+        (shape_meta, shape_batches): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         //info!("Render!");
         let shape_meta = shape_meta.into_inner();
-        if let Some(batch) = batch {
-            if let Some(buffer) = shape_meta.vertices.buffer() {
-                pass.set_vertex_buffer(0, buffer.slice(..));
-                pass.draw(0..4, batch.range.clone()); //0..4 as there are four vertices
 
-                //info!("Rendering {batch:?}");
-                RenderCommandResult::Success
-            } else {
-                //warn!("Render Fail {batch:?}");
-                RenderCommandResult::Skip
-            }
-        } else {
-            RenderCommandResult::Skip
+        let Some(buffer) = shape_meta.vertices.buffer() else {
+            warn!("Render Failed: Could not get buffer");
+            return RenderCommandResult::Skip;
+        };
+
+        for range in shape_batches.ranges.iter() {
+            pass.set_vertex_buffer(0, buffer.slice(..));
+            pass.draw(0..4, range.clone()); //0..4 as there are four vertices
         }
+        RenderCommandResult::Success
     }
 }
 
@@ -283,11 +276,11 @@ fn extract_shapes<'w, Extractable: ExtractToShader>(
 
     for (view_visibility, params_item, transform) in shape_query.iter() {
         //info!("extract shapes b");
-        // if !view_visibility.get() {
-        //     //TODO put back
-        //     info!("Ignoring {view_visibility:?} - Not Visible ",);
-        //     continue;
-        // }
+        if !view_visibility.get() {
+            //TODO put back
+            //info!("Ignoring {view_visibility:?} - Not Visible ",);
+            continue;
+        }
 
         let params = Extractable::get_params(params_item, &resource);
 
@@ -308,7 +301,6 @@ fn sort_shapes<Shader: ParameterizedShader>(mut extracted_shapes: ResMut<Extract
 }
 
 fn queue_shapes<Shader: ParameterizedShader>(
-    mut commands: Commands,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     pipeline: Res<ShaderPipeline<Shader>>,
     mut pipelines: ResMut<SpecializedRenderPipelines<ShaderPipeline<Shader>>>,
@@ -316,8 +308,9 @@ fn queue_shapes<Shader: ParameterizedShader>(
     extracted_shapes: Res<ExtractedShapes<Shader>>,
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
     views: Query<(&ExtractedView, &Msaa)>,
+    mut batches: ResMut<ShapeBatches<Shader>>,
 ) {
-    let draw_function = draw_functions
+    let draw_function: DrawFunctionId = draw_functions
         .read()
         .get_id::<DrawShaderShape<Shader>>()
         .unwrap();
@@ -358,20 +351,15 @@ fn queue_shapes<Shader: ParameterizedShader>(
             }
 
             let sort_key = FloatOrd(z);
-            let range = (start as u32)..(index as u32);
-            let entity = commands.spawn(ShapeBatch { range }).id();
 
-            // info!(
-            //     "Adding shape batch: z={z} range={start}..{index} ({} shapes)",
-            //     index - start
-            // );
+            batches.ranges.push((start as u32)..(index as u32));
 
             // Add the item to the render phase
             transparent_phase.add(Transparent2d {
                 draw_function,
                 pipeline,
                 entity: (
-                    entity,
+                    Entity::PLACEHOLDER,
                     bevy::render::sync_world::MainEntity::from(Entity::PLACEHOLDER),
                 ),
                 sort_key,
@@ -421,70 +409,12 @@ fn prepare_shapes<Shader: ParameterizedShader>(
         .write_buffer(&render_device, &render_queue);
 }
 
-fn join_adjacent_batches(
-    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
-    mut batches: Query<&mut ShapeBatch>,
-) {
-    let batch_count = batches.iter().count();
-    //info!("Join Adjacent Branches. {batch_count} Batches");
-    // info!("a");
-    for transparent_phase in transparent_render_phases.0.values_mut() {
-        let mut index = 0;
-        // info!("b");
-        while let Some(item) = transparent_phase.items.get(index) {
-            let item_index = index;
-            index += 1;
-            // info!("c");
-
-            let entity = item.entity();
-            let Ok(batch) = batches.get(entity) else {
-                continue;
-            };
-
-            // info!(
-            //     "Item: {}..{} {} {}",
-            //     item.batch_range.start, item.batch_range.end, item.entity.0, item.sort_key.0
-            // );
-
-            let mut range = batch.range.clone();
-            let mut extra_count = 0;
-
-            'concat: while let Some(next) = transparent_phase.items.get(index) {
-                if item.draw_function != next.draw_function {
-                    break 'concat;
-                }
-                let next_entity = next.entity();
-                let Ok(next_batch) = batches.get(next_entity) else {
-                    break 'concat;
-                };
-                range.end = next_batch.range.end;
-                index += 1;
-                extra_count += 1;
-            }
-
-            if extra_count > 0 {
-                //we are doing a concat
-
-                let Some(item) = transparent_phase.items.get_mut(item_index) else {
-                    continue;
-                };
-
-                let Ok(mut batch) = batches.get_mut(entity) else {
-                    continue;
-                };
-
-                item.batch_range.end += extra_count;
-                batch.range = range;
-            }
-        }
-    }
-}
-
 fn cleanup_shapes<Shader: ParameterizedShader>(
     mut extracted_shapes: ResMut<ExtractedShapes<Shader>>,
+    mut shape_batches: ResMut<ShapeBatches<Shader>>,
 ) {
-    //info!("Clearing {} shapes", extracted_shapes.vertices.len());
     extracted_shapes.vertices.clear();
+    shape_batches.ranges.clear();
 }
 
 #[repr(C)]
@@ -521,7 +451,17 @@ impl<PARAMS: ShaderParams> ShapeVertex<PARAMS> {
 
 unsafe impl<PARAMS: ShaderParams> NoUninit for ShapeVertex<PARAMS> {}
 
-#[derive(Component, Eq, PartialEq, Clone, Debug)]
-pub(crate) struct ShapeBatch {
-    range: Range<u32>,
+#[derive(Debug, Resource)]
+pub(crate) struct ShapeBatches<Shader: ParameterizedShader> {
+    pub ranges: Vec<Range<u32>>,
+    phantom: PhantomData<Shader>,
+}
+
+impl<Shader: ParameterizedShader> Default for ShapeBatches<Shader> {
+    fn default() -> Self {
+        Self {
+            ranges: Default::default(),
+            phantom: PhantomData,
+        }
+    }
 }
