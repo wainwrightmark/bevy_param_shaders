@@ -91,13 +91,14 @@ fn setup_camera(
             },));
         });
 
-    // Spawn the ImageExportBundle to initiate the export of the output texture.
-    commands.spawn((ImageExportSource(output_texture_handle), ImageExportSettings {
-            // Frames will be saved to "./out/[#####].png".
-            output_dir: "out".into(),
-            // Choose "exr" for HDR renders.
-            extension: "png".into(),
-        },) );
+    //TODO put back
+    // // Spawn the ImageExportBundle to initiate the export of the output texture.
+    // commands.spawn((ImageExportSource(output_texture_handle), ImageExportSettings {
+    //         // Frames will be saved to "./out/[#####].png".
+    //         output_dir: "out".into(),
+    //         // Choose "exr" for HDR renders.
+    //         extension: "png".into(),
+    //     },) );
 }
 
 fn setup(mut commands: Commands) {
